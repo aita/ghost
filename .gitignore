@@ -1,5 +1,6 @@
 
-# Created by https://www.gitignore.io/api/go
+/ghost
+config.toml
 
 ### Go ###
 # Binaries for programs and plugins

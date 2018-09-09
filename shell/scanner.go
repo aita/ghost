@@ -1,7 +1,7 @@
 package shell
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"unicode"
 )
@@ -18,6 +18,10 @@ const (
 
 	STRING
 	SEMICOLON
+)
+
+var (
+	ErrUnterminatedQuote = errors.New("unexpected end of string")
 )
 
 type Token struct {
@@ -154,6 +158,29 @@ func (scanner *Scanner) readString(first rune) (string, error) {
 	}
 }
 
-func (scanner *Scanner) readQuotedString(quote rune) (lit string, err error) {
-	return "", fmt.Errorf("not implemented yet")
+func (scanner *Scanner) readQuotedString(quote rune) (string, error) {
+	lit := string(quote)
+	for {
+		ch, _, err := scanner.readRune()
+		if err == io.EOF {
+			return "", ErrUnterminatedQuote
+		} else if err != nil {
+			return "", err
+		}
+		switch ch {
+		case '\'', '"':
+			if ch == quote {
+				lit += string(ch)
+				return lit, nil
+			}
+		case '\\':
+			ch, _, err = scanner.readRune()
+			if err == io.EOF {
+				return lit, nil
+			} else if err != nil {
+				return "", err
+			}
+		}
+		lit += string(ch)
+	}
 }

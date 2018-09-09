@@ -172,18 +172,19 @@ func (scanner *Scanner) readString(first rune) error {
 			return err
 		}
 		if unicode.IsSpace(ch) {
-			err = scanner.unreadRune()
-			if err != nil {
-				return err
-			}
-			return nil
+			return scanner.unreadRune()
 		}
 		if ch == '\\' {
 			ch, _, err = scanner.readRune()
 			if err == io.EOF {
+				scanner.b.WriteRune('\\')
 				return nil
 			} else if err != nil {
 				return err
+			}
+			if ch == '\r' || ch == '\n' {
+				scanner.b.WriteRune('\\')
+				return scanner.unreadRune()
 			}
 			escape, ok := escapes[ch]
 			if ok {
@@ -213,7 +214,7 @@ func (scanner *Scanner) readQuotedString(quote rune) error {
 		case '\\':
 			ch, _, err = scanner.readRune()
 			if err == io.EOF {
-				return nil
+				return ErrUnterminatedQuote
 			} else if err != nil {
 				return err
 			}

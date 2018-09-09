@@ -5,3 +5,7 @@
 [[constraint]]
   name = "github.com/bwmarrin/discordgo"
   version = ">=v0.18.0"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.2.2"

@@ -47,6 +47,47 @@ func TestScanner(t *testing.T) {
 				},
 			},
 		},
+		{
+			`echo "'hello'\n"; echo '\'ghost\''`,
+			[]*Token{
+				&Token{
+					Kind:    STRING,
+					Literal: "echo",
+					Start:   Position{Line: 1, Column: 1},
+					End:     Position{Line: 1, Column: 5},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "\"'hello'\n\"",
+					Start:   Position{Line: 1, Column: 6},
+					End:     Position{Line: 1, Column: 17},
+				},
+				&Token{
+					Kind:    SEMICOLON,
+					Literal: ";",
+					Start:   Position{Line: 1, Column: 17},
+					End:     Position{Line: 1, Column: 18},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "echo",
+					Start:   Position{Line: 1, Column: 19},
+					End:     Position{Line: 1, Column: 23},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "''ghost''",
+					Start:   Position{Line: 1, Column: 24},
+					End:     Position{Line: 1, Column: 35},
+				},
+				&Token{
+					Kind:    EOF,
+					Literal: "",
+					Start:   Position{Line: 1, Column: 35},
+					End:     Position{Line: 1, Column: 35},
+				},
+			},
+		},
 	} {
 		r := strings.NewReader(x.input)
 		scanner := NewScanner(r)

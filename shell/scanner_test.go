@@ -88,6 +88,35 @@ func TestScanner(t *testing.T) {
 				},
 			},
 		},
+		{
+			"echo hello  # put comment here",
+			[]*Token{
+				&Token{
+					Kind:    STRING,
+					Literal: "echo",
+					Start:   Position{Line: 1, Column: 1},
+					End:     Position{Line: 1, Column: 5},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "hello",
+					Start:   Position{Line: 1, Column: 6},
+					End:     Position{Line: 1, Column: 11},
+				},
+				&Token{
+					Kind:    COMMENT,
+					Literal: "# put comment here",
+					Start:   Position{Line: 1, Column: 13},
+					End:     Position{Line: 1, Column: 31},
+				},
+				&Token{
+					Kind:    EOF,
+					Literal: "",
+					Start:   Position{Line: 1, Column: 31},
+					End:     Position{Line: 1, Column: 31},
+				},
+			},
+		},
 	} {
 		r := strings.NewReader(x.input)
 		scanner := NewScanner(r)

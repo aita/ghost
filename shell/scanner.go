@@ -95,6 +95,24 @@ func (scanner *Scanner) Next() (*Token, error) {
 			switch ch {
 			case ';':
 				return newToken(SEMICOLON, ";", start, scanner.pos), nil
+			case '#':
+				comment := "#"
+				for {
+					ch, _, err = scanner.readRune()
+					if err == io.EOF {
+						break
+					} else if err != nil {
+						return nil, err
+					}
+					if ch == '\r' || ch == '\n' {
+						err := scanner.unreadRune()
+						if err != nil {
+							return nil, err
+						}
+					}
+					comment += string(ch)
+				}
+				return newToken(COMMENT, comment, start, scanner.pos), nil
 			case '\'', '"':
 				lit, err := scanner.readQuotedString(ch)
 				if err != nil {

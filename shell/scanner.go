@@ -130,6 +130,16 @@ func (scanner *Scanner) unreadRune() error {
 	return nil
 }
 
+var escapes = map[rune]rune{
+	'a': '\a',
+	'b': '\b',
+	'f': '\f',
+	'n': '\n',
+	'r': '\r',
+	't': '\t',
+	'v': '\v',
+}
+
 func (scanner *Scanner) readString(first rune) (string, error) {
 	lit := string(first)
 	for {
@@ -152,6 +162,10 @@ func (scanner *Scanner) readString(first rune) (string, error) {
 				return lit, nil
 			} else if err != nil {
 				return "", err
+			}
+			escape, ok := escapes[ch]
+			if ok {
+				ch = escape
 			}
 		}
 		lit += string(ch)
@@ -179,6 +193,14 @@ func (scanner *Scanner) readQuotedString(quote rune) (string, error) {
 				return lit, nil
 			} else if err != nil {
 				return "", err
+			}
+			if quote == '"' {
+				escape, ok := escapes[ch]
+				if ok {
+					ch = escape
+				}
+			} else if quote == '\'' && ch != '\'' {
+				lit += "\\"
 			}
 		}
 		lit += string(ch)

@@ -3,6 +3,7 @@ package shell
 import (
 	"errors"
 	"io"
+	"strings"
 	"unicode"
 )
 
@@ -43,6 +44,7 @@ func newToken(kind int, lit string, start, end Position) *Token {
 type Scanner struct {
 	r   io.RuneScanner
 	pos Position
+	b   strings.Builder
 }
 
 func NewScanner(r io.RuneScanner) *Scanner {
@@ -70,14 +72,14 @@ func (scanner *Scanner) Next() (*Token, error) {
 			case '\r':
 				scanner.pos.Line++
 				scanner.pos.Column = 0
-				lit := string(ch)
+				lit := "\r"
 				ch, _, err := scanner.readRune()
 				if err != io.EOF {
 					if err != nil {
 						return nil, err
 					}
 					if ch == '\n' {
-						lit += string(ch)
+						lit = "\r\n"
 					} else {
 						err := scanner.unreadRune()
 						if err != nil {
@@ -96,7 +98,8 @@ func (scanner *Scanner) Next() (*Token, error) {
 			case ';':
 				return newToken(SEMICOLON, ";", start, scanner.pos), nil
 			case '#':
-				comment := "#"
+				scanner.b.Reset()
+				scanner.b.WriteRune(ch)
 				for {
 					ch, _, err = scanner.readRune()
 					if err == io.EOF {
@@ -110,21 +113,21 @@ func (scanner *Scanner) Next() (*Token, error) {
 							return nil, err
 						}
 					}
-					comment += string(ch)
+					scanner.b.WriteRune(ch)
 				}
-				return newToken(COMMENT, comment, start, scanner.pos), nil
+				return newToken(COMMENT, scanner.b.String(), start, scanner.pos), nil
 			case '\'', '"':
-				lit, err := scanner.readQuotedString(ch)
+				err := scanner.readQuotedString(ch)
 				if err != nil {
 					return nil, err
 				}
-				return newToken(STRING, lit, start, scanner.pos), nil
+				return newToken(STRING, scanner.b.String(), start, scanner.pos), nil
 			default:
-				lit, err := scanner.readString(ch)
+				err := scanner.readString(ch)
 				if err != nil {
 					return nil, err
 				}
-				return newToken(STRING, lit, start, scanner.pos), nil
+				return newToken(STRING, scanner.b.String(), start, scanner.pos), nil
 			}
 		}
 	}
@@ -158,59 +161,61 @@ var escapes = map[rune]rune{
 	'v': '\v',
 }
 
-func (scanner *Scanner) readString(first rune) (string, error) {
-	lit := string(first)
+func (scanner *Scanner) readString(first rune) error {
+	scanner.b.Reset()
+	scanner.b.WriteRune(first)
 	for {
 		ch, _, err := scanner.readRune()
 		if err == io.EOF {
-			return lit, nil
+			return nil
 		} else if err != nil {
-			return "", err
+			return err
 		}
 		if unicode.IsSpace(ch) {
 			err = scanner.unreadRune()
 			if err != nil {
-				return "", err
+				return err
 			}
-			return lit, nil
+			return nil
 		}
 		if ch == '\\' {
 			ch, _, err = scanner.readRune()
 			if err == io.EOF {
-				return lit, nil
+				return nil
 			} else if err != nil {
-				return "", err
+				return err
 			}
 			escape, ok := escapes[ch]
 			if ok {
 				ch = escape
 			}
 		}
-		lit += string(ch)
+		scanner.b.WriteRune(ch)
 	}
 }
 
-func (scanner *Scanner) readQuotedString(quote rune) (string, error) {
-	lit := string(quote)
+func (scanner *Scanner) readQuotedString(quote rune) error {
+	scanner.b.Reset()
+	scanner.b.WriteRune(quote)
 	for {
 		ch, _, err := scanner.readRune()
 		if err == io.EOF {
-			return "", ErrUnterminatedQuote
+			return ErrUnterminatedQuote
 		} else if err != nil {
-			return "", err
+			return err
 		}
 		switch ch {
 		case '\'', '"':
 			if ch == quote {
-				lit += string(ch)
-				return lit, nil
+				scanner.b.WriteRune(ch)
+				return nil
 			}
 		case '\\':
 			ch, _, err = scanner.readRune()
 			if err == io.EOF {
-				return lit, nil
+				return nil
 			} else if err != nil {
-				return "", err
+				return err
 			}
 			if quote == '"' {
 				escape, ok := escapes[ch]
@@ -218,9 +223,9 @@ func (scanner *Scanner) readQuotedString(quote rune) (string, error) {
 					ch = escape
 				}
 			} else if quote == '\'' && ch != '\'' {
-				lit += "\\"
+				scanner.b.WriteRune('\\')
 			}
 		}
-		lit += string(ch)
+		scanner.b.WriteRune(ch)
 	}
 }

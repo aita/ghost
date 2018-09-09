@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	ErrUnterminatedQuote = errors.New("unexpected end of string")
+	ErrUnterminatedString = errors.New("unexpected end of string")
 )
 
 type Token struct {
@@ -172,22 +172,33 @@ func (scanner *Scanner) readString(first rune) error {
 			return err
 		}
 		if unicode.IsSpace(ch) {
-			err = scanner.unreadRune()
-			if err != nil {
-				return err
-			}
-			return nil
+			return scanner.unreadRune()
 		}
 		if ch == '\\' {
 			ch, _, err = scanner.readRune()
 			if err == io.EOF {
-				return nil
+				return ErrUnterminatedString
 			} else if err != nil {
 				return err
 			}
-			escape, ok := escapes[ch]
-			if ok {
-				ch = escape
+			// ignore "\r\n" and "\n"
+			if ch == '\r' {
+				ch, _, err = scanner.readRune()
+				if err == io.EOF {
+					return nil
+				} else if err != nil {
+					return err
+				}
+				if ch == '\n' {
+					continue
+				}
+			} else if ch == '\n' {
+				continue
+			} else {
+				escape, ok := escapes[ch]
+				if ok {
+					ch = escape
+				}
 			}
 		}
 		scanner.b.WriteRune(ch)
@@ -200,7 +211,7 @@ func (scanner *Scanner) readQuotedString(quote rune) error {
 	for {
 		ch, _, err := scanner.readRune()
 		if err == io.EOF {
-			return ErrUnterminatedQuote
+			return ErrUnterminatedString
 		} else if err != nil {
 			return err
 		}
@@ -213,7 +224,7 @@ func (scanner *Scanner) readQuotedString(quote rune) error {
 		case '\\':
 			ch, _, err = scanner.readRune()
 			if err == io.EOF {
-				return nil
+				return ErrUnterminatedString
 			} else if err != nil {
 				return err
 			}

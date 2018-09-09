@@ -8,7 +8,7 @@ import (
 )
 
 func TestScanner(t *testing.T) {
-	for _, x := range []struct {
+	for _, tt := range []struct {
 		input string
 		toks  []*Token
 	}{
@@ -118,12 +118,42 @@ func TestScanner(t *testing.T) {
 			},
 		},
 	} {
-		r := strings.NewReader(x.input)
+		r := strings.NewReader(tt.input)
 		scanner := NewScanner(r)
-		for _, expected := range x.toks {
+		for _, expected := range tt.toks {
 			tok, err := scanner.Next()
 			assert.Nil(t, err)
 			assert.Equal(t, expected, tok)
 		}
+	}
+}
+
+func TestReadString(t *testing.T) {
+	for _, tt := range []struct {
+		input    string
+		expected string
+		err      error
+	}{
+		// tests with escape sequence
+		{"hello\\'", "hello'", nil},
+		{"hello\\n", "hello\n", nil},
+		{"hello\\ world", "hello world", nil},
+		// tests with trailing backslash and newline
+		{"hello\\\r", "hello", nil},
+		{"hello\\\r\n", "hello", nil},
+		{"hello\\\n", "hello", nil},
+		// tests with trailing backslash and string
+		{"hello\\\nworld", "helloworld", nil},
+		{"hello\\\rworld", "helloworld", nil},
+		{"hello\\\r\nworld", "helloworld", nil},
+		// tests with trailing baclash and nothing
+		{"hello\\", "hello", ErrUnterminatedString},
+	} {
+		r := strings.NewReader(tt.input)
+		scanner := NewScanner(r)
+		ch, _, _ := r.ReadRune()
+		err := scanner.readString(ch)
+		assert.Equal(t, tt.expected, scanner.b.String())
+		assert.Equal(t, tt.err, err)
 	}
 }

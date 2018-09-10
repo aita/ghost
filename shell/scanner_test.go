@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -153,6 +154,40 @@ func TestReadString(t *testing.T) {
 		scanner := NewScanner(r)
 		ch, _, _ := r.ReadRune()
 		err := scanner.readString(ch)
+		assert.Equal(t, tt.expected, scanner.b.String())
+		assert.Equal(t, tt.err, err)
+	}
+}
+
+func TestReadQuotedString(t *testing.T) {
+	for _, tt := range []struct {
+		quote    rune
+		s        string
+		expected string
+		err      error
+	}{
+		// single-quote string
+		// tests with escape sequence
+		{'\'', "hello\\'", "'hello''", nil},
+		{'\'', "hello\\n", "'hello\n'", nil},
+		{'\'', "hello\\ world", "hello world", nil},
+		// tests with trailing backslash and newline
+		{'\'', "hello\\\r", "hello", nil},
+		{'\'', "hello\\\r\n", "hello", nil},
+		{'\'', "hello\\\n", "hello", nil},
+		// tests with trailing backslash and string
+		{'\'', "hello\\\nworld", "helloworld", nil},
+		{'\'', "hello\\\rworld", "helloworld", nil},
+		{'\'', "hello\\\r\nworld", "helloworld", nil},
+		// tests with trailing baclash and nothing
+		{'\'', "hello\\", "hello", ErrUnterminatedString},
+
+		// double-quote string
+		// TODO
+	} {
+		r := strings.NewReader(fmt.Sprintf("%s%c", tt.s, tt.quote))
+		scanner := NewScanner(r)
+		err := scanner.readQuotedString(tt.quote)
 		assert.Equal(t, tt.expected, scanner.b.String())
 		assert.Equal(t, tt.err, err)
 	}

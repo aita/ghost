@@ -58,7 +58,7 @@ func NewScanner(r io.RuneScanner) *Scanner {
 func (scanner *Scanner) Next() (*Token, error) {
 	for {
 		start := scanner.pos
-		ch, _, err := scanner.readRune()
+		ch, err := scanner.readRune()
 		if err == io.EOF {
 			return newToken(EOF, "", start), nil
 		} else if err != nil {
@@ -70,7 +70,7 @@ func (scanner *Scanner) Next() (*Token, error) {
 				scanner.pos.Line++
 				scanner.pos.Column = 0
 				lit := "\r"
-				ch, _, err := scanner.readRune()
+				ch, err := scanner.readRune()
 				if err != io.EOF {
 					if err != nil {
 						return nil, err
@@ -98,7 +98,7 @@ func (scanner *Scanner) Next() (*Token, error) {
 				scanner.b.Reset()
 				scanner.b.WriteRune(ch)
 				for {
-					ch, _, err = scanner.readRune()
+					ch, err = scanner.readRune()
 					if err == io.EOF {
 						break
 					} else if err != nil {
@@ -130,8 +130,8 @@ func (scanner *Scanner) Next() (*Token, error) {
 	}
 }
 
-func (scanner *Scanner) readRune() (r rune, size int, err error) {
-	r, size, err = scanner.r.ReadRune()
+func (scanner *Scanner) readRune() (r rune, err error) {
+	r, _, err = scanner.r.ReadRune()
 	if err != nil {
 		return
 	}
@@ -162,7 +162,7 @@ func (scanner *Scanner) readString(first rune) error {
 	scanner.b.Reset()
 	scanner.b.WriteRune(first)
 	for {
-		ch, _, err := scanner.readRune()
+		ch, err := scanner.readRune()
 		if err == io.EOF {
 			return nil
 		} else if err != nil {
@@ -172,7 +172,7 @@ func (scanner *Scanner) readString(first rune) error {
 			return scanner.unreadRune()
 		}
 		if ch == '\\' {
-			ch, _, err = scanner.readRune()
+			ch, err = scanner.readRune()
 			if err == io.EOF {
 				return ErrUnterminatedString
 			} else if err != nil {
@@ -180,7 +180,7 @@ func (scanner *Scanner) readString(first rune) error {
 			}
 			// ignore "\r\n" and "\n"
 			if ch == '\r' {
-				ch, _, err = scanner.readRune()
+				ch, err = scanner.readRune()
 				if err == io.EOF {
 					return nil
 				} else if err != nil {
@@ -206,7 +206,7 @@ func (scanner *Scanner) readQuotedString(quote rune) error {
 	scanner.b.Reset()
 	scanner.b.WriteRune(quote)
 	for {
-		ch, _, err := scanner.readRune()
+		ch, err := scanner.readRune()
 		if err == io.EOF {
 			return ErrUnterminatedString
 		} else if err != nil {
@@ -219,18 +219,13 @@ func (scanner *Scanner) readQuotedString(quote rune) error {
 				return nil
 			}
 		case '\\':
-			ch, _, err = scanner.readRune()
+			ch, err = scanner.readRune()
 			if err == io.EOF {
 				return ErrUnterminatedString
 			} else if err != nil {
 				return err
 			}
-			if quote == '"' {
-				escape, ok := escapes[ch]
-				if ok {
-					ch = escape
-				}
-			} else if quote == '\'' && ch != '\'' {
+			if ch != quote {
 				scanner.b.WriteRune('\\')
 			}
 		}

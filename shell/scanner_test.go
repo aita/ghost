@@ -1,7 +1,6 @@
 package shell
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -53,7 +52,7 @@ func TestScanner(t *testing.T) {
 				},
 				&Token{
 					Kind:    STRING,
-					Literal: "\"'hello'\n\"",
+					Literal: "\"'hello'\\n\"",
 					Pos:     Position{Line: 1, Column: 6},
 				},
 				&Token{
@@ -132,12 +131,12 @@ func TestReadString(t *testing.T) {
 		{"hello\\\nworld", "helloworld", nil},
 		{"hello\\\rworld", "helloworld", nil},
 		{"hello\\\r\nworld", "helloworld", nil},
-		// tests with trailing baclash and nothing
+		// tests with trailing backslash and nothing
 		{"hello\\", "hello", ErrUnterminatedString},
 	} {
 		r := strings.NewReader(tt.input)
 		scanner := NewScanner(r)
-		ch, _, _ := r.ReadRune()
+		ch, _ := scanner.readRune()
 		err := scanner.readString(ch)
 		assert.Equal(t, tt.expected, scanner.b.String())
 		assert.Equal(t, tt.err, err)
@@ -146,33 +145,23 @@ func TestReadString(t *testing.T) {
 
 func TestReadQuotedString(t *testing.T) {
 	for _, tt := range []struct {
-		quote    rune
-		s        string
+		input    string
 		expected string
 		err      error
 	}{
-		// single-quote string
-		// tests with escape sequence
-		{'\'', "hello\\'", "'hello''", nil},
-		{'\'', "hello\\n", "'hello\n'", nil},
-		{'\'', "hello\\ world", "hello world", nil},
-		// tests with trailing backslash and newline
-		{'\'', "hello\\\r", "hello", nil},
-		{'\'', "hello\\\r\n", "hello", nil},
-		{'\'', "hello\\\n", "hello", nil},
-		// tests with trailing backslash and string
-		{'\'', "hello\\\nworld", "helloworld", nil},
-		{'\'', "hello\\\rworld", "helloworld", nil},
-		{'\'', "hello\\\r\nworld", "helloworld", nil},
-		// tests with trailing baclash and nothing
-		{'\'', "hello\\", "hello", ErrUnterminatedString},
-
-		// double-quote string
-		// TODO
+		{`"hello"`, `"hello"`, nil},
+		{`'hello'`, `'hello'`, nil},
+		{`"hello world\n"`, `"hello world\n"`, nil},
+		{`'hello world\n'`, `'hello world\n'`, nil},
+		{`"\"double quote\""`, `""double quote""`, nil},
+		{`'It\'s a small world'`, `'It's a small world'`, nil},
+		{`"hello`, `"hello`, ErrUnterminatedString},
+		{`"hello\`, `"hello`, ErrUnterminatedString},
 	} {
-		r := strings.NewReader(fmt.Sprintf("%s%c", tt.s, tt.quote))
+		r := strings.NewReader(tt.input)
 		scanner := NewScanner(r)
-		err := scanner.readQuotedString(tt.quote)
+		q, _ := scanner.readRune()
+		err := scanner.readQuotedString(q)
 		assert.Equal(t, tt.expected, scanner.b.String())
 		assert.Equal(t, tt.err, err)
 	}

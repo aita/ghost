@@ -117,17 +117,13 @@ func (scanner *Scanner) Next() (*Token, error) {
 				}
 				return newToken(COMMENT, scanner.b.String(), start, scanner.pos), nil
 			case '\'', '"':
-				scanner.b.Reset()
-				scanner.b.WriteRune(ch)
 				err := scanner.readQuotedString(ch)
 				if err != nil {
 					return nil, err
 				}
 				return newToken(STRING, scanner.b.String(), start, scanner.pos), nil
 			default:
-				scanner.b.Reset()
-				scanner.b.WriteRune(ch)
-				err := scanner.readString()
+				err := scanner.readString(ch)
 				if err != nil {
 					return nil, err
 				}
@@ -165,7 +161,9 @@ var escapes = map[rune]rune{
 	'v': '\v',
 }
 
-func (scanner *Scanner) readString() error {
+func (scanner *Scanner) readString(first rune) error {
+	scanner.b.Reset()
+	scanner.b.WriteRune(first)
 	for {
 		ch, _, err := scanner.readRune()
 		if err == io.EOF {
@@ -198,6 +196,8 @@ func (scanner *Scanner) readString() error {
 }
 
 func (scanner *Scanner) readQuotedString(quote rune) error {
+	scanner.b.Reset()
+	scanner.b.WriteRune(quote)
 	for {
 		ch, _, err := scanner.readRune()
 		if err == io.EOF {

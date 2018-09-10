@@ -57,7 +57,6 @@ func NewScanner(r io.RuneScanner) *Scanner {
 
 func (scanner *Scanner) Next() (*Token, error) {
 	for {
-		var ch rune
 		start := scanner.pos
 		ch, err := scanner.readRune()
 		if err == io.EOF {

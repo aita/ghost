@@ -28,16 +28,14 @@ var (
 type Token struct {
 	Kind    int
 	Literal string
-	Start   Position
-	End     Position
+	Pos     Position
 }
 
-func newToken(kind int, lit string, start, end Position) *Token {
+func newToken(kind int, lit string, pos Position) *Token {
 	return &Token{
 		Kind:    kind,
 		Literal: lit,
-		Start:   start,
-		End:     end,
+		Pos:     pos,
 	}
 }
 
@@ -63,7 +61,7 @@ func (scanner *Scanner) Next() (*Token, error) {
 		start := scanner.pos
 		ch, _, err := scanner.readRune()
 		if err == io.EOF {
-			return newToken(EOF, "", start, scanner.pos), nil
+			return newToken(EOF, "", start), nil
 		} else if err != nil {
 			return nil, err
 		}
@@ -87,16 +85,16 @@ func (scanner *Scanner) Next() (*Token, error) {
 						}
 					}
 				}
-				return newToken(NEWLINE, lit, start, scanner.pos), nil
+				return newToken(NEWLINE, lit, start), nil
 			case '\n':
 				scanner.pos.Line++
 				scanner.pos.Column = 0
-				return newToken(NEWLINE, "\n", start, scanner.pos), nil
+				return newToken(NEWLINE, "\n", start), nil
 			}
 		} else {
 			switch ch {
 			case ';':
-				return newToken(SEMICOLON, ";", start, scanner.pos), nil
+				return newToken(SEMICOLON, ";", start), nil
 			case '#':
 				scanner.b.Reset()
 				scanner.b.WriteRune(ch)
@@ -115,19 +113,19 @@ func (scanner *Scanner) Next() (*Token, error) {
 					}
 					scanner.b.WriteRune(ch)
 				}
-				return newToken(COMMENT, scanner.b.String(), start, scanner.pos), nil
+				return newToken(COMMENT, scanner.b.String(), start), nil
 			case '\'', '"':
 				err := scanner.readQuotedString(ch)
 				if err != nil {
 					return nil, err
 				}
-				return newToken(STRING, scanner.b.String(), start, scanner.pos), nil
+				return newToken(STRING, scanner.b.String(), start), nil
 			default:
 				err := scanner.readString(ch)
 				if err != nil {
 					return nil, err
 				}
-				return newToken(STRING, scanner.b.String(), start, scanner.pos), nil
+				return newToken(STRING, scanner.b.String(), start), nil
 			}
 		}
 	}

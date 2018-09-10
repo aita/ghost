@@ -21,6 +21,14 @@ const (
 	SEMICOLON
 )
 
+var TokenNames = map[int]string{
+	EOF:       "EOF",
+	NEWLINE:   "NEWLINE",
+	COMMENT:   "COMMENT",
+	STRING:    "STRING",
+	SEMICOLON: "SEMICOLON",
+}
+
 var (
 	ErrUnterminatedString = errors.New("unexpected end of string")
 )

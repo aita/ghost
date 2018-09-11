@@ -13,7 +13,7 @@ func TestScanner(t *testing.T) {
 		toks  []*Token
 	}{
 		{
-			"echo hello world\r\n",
+			"echo hello;\n echo world",
 			[]*Token{
 				&Token{
 					Kind:    STRING,
@@ -32,18 +32,18 @@ func TestScanner(t *testing.T) {
 				},
 				&Token{
 					Kind:    NEWLINE,
-					Literal: "\r\n",
+					Literal: "\n",
 					Pos:     Position{Line: 1, Column: 17},
 				},
 				&Token{
 					Kind:    EOF,
 					Literal: "",
-					Pos:     Position{Line: 2, Column: 1},
+					Pos:     Position{Line: 1, Column: 17},
 				},
 			},
 		},
 		{
-			`echo "'hello'\n"; echo '\'ghost\''`,
+			`echo "hello"; echo 'world'`,
 			[]*Token{
 				&Token{
 					Kind:    STRING,
@@ -52,7 +52,7 @@ func TestScanner(t *testing.T) {
 				},
 				&Token{
 					Kind:    STRING,
-					Literal: "\"'hello'\\n\"",
+					Literal: `"hello"`,
 					Pos:     Position{Line: 1, Column: 6},
 				},
 				&Token{
@@ -67,7 +67,7 @@ func TestScanner(t *testing.T) {
 				},
 				&Token{
 					Kind:    STRING,
-					Literal: "''ghost''",
+					Literal: "'world'",
 					Pos:     Position{Line: 1, Column: 24},
 				},
 				&Token{
@@ -106,8 +106,7 @@ func TestScanner(t *testing.T) {
 		r := strings.NewReader(tt.input)
 		scanner := NewScanner(r)
 		for _, expected := range tt.toks {
-			tok, err := scanner.Next()
-			assert.Nil(t, err)
+			tok := scanner.Scan()
 			assert.Equal(t, expected, tok)
 		}
 	}
@@ -132,14 +131,13 @@ func TestReadString(t *testing.T) {
 		{"hello\\\rworld", "helloworld", nil},
 		{"hello\\\r\nworld", "helloworld", nil},
 		// tests with trailing backslash and nothing
-		{"hello\\", "hello", ErrUnterminatedString},
+		{"hello\\", "hello", nil},
 	} {
 		r := strings.NewReader(tt.input)
 		scanner := NewScanner(r)
-		ch, _ := scanner.readRune()
-		err := scanner.readString(ch)
-		assert.Equal(t, tt.expected, scanner.b.String())
-		assert.Equal(t, tt.err, err)
+		scanner.next()
+		lit := scanner.scanString()
+		assert.Equal(t, tt.expected, lit)
 	}
 }
 
@@ -155,14 +153,13 @@ func TestReadQuotedString(t *testing.T) {
 		{`'hello world\n'`, `'hello world\n'`, nil},
 		{`"\"double quote\""`, `""double quote""`, nil},
 		{`'It\'s a small world'`, `'It's a small world'`, nil},
-		{`"hello`, `"hello`, ErrUnterminatedString},
-		{`"hello\`, `"hello`, ErrUnterminatedString},
+		{`"hello`, `"hello`, nil},
+		{`"hello\`, `"hello`, nil},
 	} {
 		r := strings.NewReader(tt.input)
 		scanner := NewScanner(r)
-		q, _ := scanner.readRune()
-		err := scanner.readQuotedString(q)
-		assert.Equal(t, tt.expected, scanner.b.String())
-		assert.Equal(t, tt.err, err)
+		scanner.next()
+		lit := scanner.scanQuotedString()
+		assert.Equal(t, tt.expected, lit)
 	}
 }

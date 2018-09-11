@@ -1,7 +1,7 @@
 package shell
 
 import (
-	"errors"
+	"bufio"
 	"io"
 	"strings"
 	"unicode"
@@ -13,10 +13,10 @@ type Position struct {
 }
 
 const (
-	EOF = iota
-	NEWLINE
-	COMMENT
+	EOF = -1
 
+	NEWLINE = iota
+	COMMENT
 	STRING
 	SEMICOLON
 )
@@ -28,10 +28,6 @@ var TokenNames = map[int]string{
 	STRING:    "STRING",
 	SEMICOLON: "SEMICOLON",
 }
-
-var (
-	ErrUnterminatedString = errors.New("unexpected end of string")
-)
 
 type Token struct {
 	Kind    int
@@ -47,196 +43,156 @@ func newToken(kind int, lit string, pos Position) *Token {
 	}
 }
 
+type ErrorHandler func(pos Position, msg string)
+
 type Scanner struct {
-	r   io.RuneScanner
-	pos Position
-	b   strings.Builder
+	src        *bufio.Reader
+	ch         rune
+	newline    bool
+	pos        Position
+	sb         strings.Builder
+	errHandler ErrorHandler
+	ErrorCount int
 }
 
-func NewScanner(r io.RuneScanner) *Scanner {
+func NewScanner(r io.Reader, errHandler ErrorHandler) *Scanner {
 	return &Scanner{
-		r: r,
+		src:     bufio.NewReader(r),
+		ch:      ' ',
+		newline: false,
 		pos: Position{
 			Line:   1,
-			Column: 1,
+			Column: 0,
 		},
+		errHandler: errHandler,
+		ErrorCount: 0,
 	}
 }
 
-func (scanner *Scanner) Next() (*Token, error) {
-	for {
-		start := scanner.pos
-		ch, err := scanner.readRune()
+func (s *Scanner) error(message string) {
+	if s.errHandler != nil {
+		s.errHandler(s.pos, message)
+	}
+	s.ErrorCount++
+}
+
+func (s *Scanner) next() {
+	ch, size, err := s.src.ReadRune()
+	if err != nil {
 		if err == io.EOF {
-			return newToken(EOF, "", start), nil
-		} else if err != nil {
-			return nil, err
-		}
-		if unicode.IsSpace(ch) {
-			switch ch {
-			case '\r':
-				scanner.pos.Line++
-				scanner.pos.Column = 0
-				lit := "\r"
-				ch, err := scanner.readRune()
-				if err != io.EOF {
-					if err != nil {
-						return nil, err
-					}
-					if ch == '\n' {
-						lit = "\r\n"
-					} else {
-						err := scanner.unreadRune()
-						if err != nil {
-							return nil, err
-						}
-					}
-				}
-				return newToken(NEWLINE, lit, start), nil
-			case '\n':
-				scanner.pos.Line++
-				scanner.pos.Column = 0
-				return newToken(NEWLINE, "\n", start), nil
-			}
+			ch = EOF
 		} else {
-			switch ch {
-			case ';':
-				return newToken(SEMICOLON, ";", start), nil
-			case '#':
-				scanner.b.Reset()
-				scanner.b.WriteRune(ch)
-				for {
-					ch, err = scanner.readRune()
-					if err == io.EOF {
-						break
-					} else if err != nil {
-						return nil, err
-					}
-					if ch == '\r' || ch == '\n' {
-						err := scanner.unreadRune()
-						if err != nil {
-							return nil, err
-						}
-					}
-					scanner.b.WriteRune(ch)
-				}
-				return newToken(COMMENT, scanner.b.String(), start), nil
-			case '\'', '"':
-				err := scanner.readQuotedString(ch)
-				if err != nil {
-					return nil, err
-				}
-				return newToken(STRING, scanner.b.String(), start), nil
-			default:
-				err := scanner.readString(ch)
-				if err != nil {
-					return nil, err
-				}
-				return newToken(STRING, scanner.b.String(), start), nil
-			}
+			s.error(err.Error())
 		}
 	}
-}
-
-func (scanner *Scanner) readRune() (r rune, err error) {
-	r, _, err = scanner.r.ReadRune()
-	if err != nil {
-		return
+	if size > 0 {
+		s.pos.Column++
 	}
-	scanner.pos.Column++
-	return
-}
-
-func (scanner *Scanner) unreadRune() error {
-	err := scanner.r.UnreadRune()
-	if err != nil {
-		return err
+	if s.ch == '\n' {
+		s.pos.Line++
+		s.pos.Column = 1
 	}
-	scanner.pos.Column--
-	return nil
+	s.ch = ch
 }
 
-var escapes = map[rune]rune{
-	'a': '\a',
-	'b': '\b',
-	'f': '\f',
-	'n': '\n',
-	'r': '\r',
-	't': '\t',
-	'v': '\v',
-}
-
-func (scanner *Scanner) readString(first rune) error {
-	scanner.b.Reset()
-	scanner.b.WriteRune(first)
+func (s *Scanner) Scan() *Token {
+	pos := s.pos
 	for {
-		ch, err := scanner.readRune()
-		if err == io.EOF {
-			return nil
-		} else if err != nil {
-			return err
+		if s.ch == EOF {
+			return newToken(EOF, "", pos)
 		}
-		if unicode.IsSpace(ch) {
-			return scanner.unreadRune()
+		if !unicode.IsSpace(s.ch) {
+			break
 		}
-		if ch == '\\' {
-			ch, err = scanner.readRune()
-			if err == io.EOF {
-				return ErrUnterminatedString
-			} else if err != nil {
-				return err
-			}
-			// ignore "\r\n" and "\n"
-			if ch == '\r' {
-				ch, err = scanner.readRune()
-				if err == io.EOF {
-					return nil
-				} else if err != nil {
-					return err
-				}
-				if ch == '\n' {
-					continue
-				}
-			} else if ch == '\n' {
-				continue
-			} else {
-				escape, ok := escapes[ch]
-				if ok {
-					ch = escape
-				}
-			}
+		if s.ch == '\n' && !s.newline {
+			s.newline = true
+			return newToken(NEWLINE, "\n", pos)
 		}
-		scanner.b.WriteRune(ch)
+		s.next()
+		pos = s.pos
+	}
+	s.newline = false
+
+	switch s.ch {
+	case ';':
+		s.next()
+		return newToken(SEMICOLON, ";", pos)
+	case '#':
+		lit := s.scanComment()
+		return newToken(COMMENT, lit, pos)
+	case '\'', '"':
+		lit := s.scanQuotedString()
+		return newToken(STRING, lit, pos)
+	default:
+		lit := s.scanString()
+		return newToken(STRING, lit, pos)
 	}
 }
 
-func (scanner *Scanner) readQuotedString(quote rune) error {
-	scanner.b.Reset()
-	scanner.b.WriteRune(quote)
+func (s *Scanner) scanComment() string {
+	s.sb.Reset()
 	for {
-		ch, err := scanner.readRune()
-		if err == io.EOF {
-			return ErrUnterminatedString
-		} else if err != nil {
-			return err
+		if s.ch == EOF || s.ch == '\r' || s.ch == '\n' {
+			break
 		}
-		switch ch {
-		case '\'', '"':
-			if ch == quote {
-				scanner.b.WriteRune(ch)
-				return nil
-			}
+		s.sb.WriteRune(s.ch)
+		s.next()
+	}
+	return s.sb.String()
+}
+
+func (s *Scanner) scanString() string {
+	s.sb.Reset()
+scanEnd:
+	for {
+		switch s.ch {
+		case EOF, ';', '\'', '"':
+			break scanEnd
 		case '\\':
-			ch, err = scanner.readRune()
-			if err == io.EOF {
-				return ErrUnterminatedString
-			} else if err != nil {
-				return err
+			s.sb.WriteRune(s.ch)
+			s.next()
+			if s.ch == EOF {
+				s.error("unexpected end of string")
+				break scanEnd
 			}
-			if ch != quote {
-				scanner.b.WriteRune('\\')
+		default:
+			if unicode.IsSpace(s.ch) {
+				break scanEnd
 			}
 		}
-		scanner.b.WriteRune(ch)
+		s.sb.WriteRune(s.ch)
+		s.next()
 	}
+	return s.sb.String()
+}
+
+func (s *Scanner) scanQuotedString() string {
+	quote := s.ch
+
+	s.sb.Reset()
+	s.sb.WriteRune(quote)
+	for {
+		s.next()
+		if s.ch == EOF {
+			s.error("unexpected end of string")
+			break
+		} else if s.ch == '\'' || s.ch == '"' {
+			if s.ch == quote {
+				s.sb.WriteRune(s.ch)
+				break
+			}
+		} else if s.ch == '\\' {
+			s.next()
+			if s.ch == EOF {
+				s.error("unexpected end of string")
+				break
+			}
+			if s.ch != quote {
+				s.sb.WriteRune('\\')
+			}
+		}
+		s.sb.WriteRune(s.ch)
+	}
+	s.next()
+	return s.sb.String()
 }

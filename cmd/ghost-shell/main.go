@@ -34,7 +34,7 @@ loopEnd:
 		fmt.Printf(prompt)
 		toks := []*shell.Token{}
 		for {
-			tok, err := scanner.Next()
+			tok, err := scanner.Scan()
 			if err != nil {
 				die(err)
 			}

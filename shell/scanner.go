@@ -8,10 +8,12 @@ import (
 )
 
 type Position struct {
+	Offset int // offset, starting at 0
 	Line   int // line number, starting at 1
 	Column int // column number, starting at 1 (character count per line)
 }
 
+// The list of kinds of token
 const (
 	EOF = -1
 
@@ -85,6 +87,7 @@ func (s *Scanner) next() {
 			s.error(err.Error())
 		}
 	}
+	s.pos.Offset += size
 	if size > 0 {
 		s.pos.Column++
 	}
@@ -96,6 +99,7 @@ func (s *Scanner) next() {
 }
 
 func (s *Scanner) Scan() *Token {
+scanAgain:
 	pos := s.pos
 	for {
 		if s.ch == EOF {
@@ -125,6 +129,9 @@ func (s *Scanner) Scan() *Token {
 		return newToken(STRING, lit, pos)
 	default:
 		lit := s.scanString()
+		if lit == "\n" {
+			goto scanAgain
+		}
 		return newToken(STRING, lit, pos)
 	}
 }

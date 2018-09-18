@@ -33,7 +33,8 @@ func main() {
 		die(err)
 	}
 
-	dg.AddHandler(ghost.DiscordHandler)
+	h := ghost.MakeDiscordHandler()
+	dg.AddHandler(h.OnMessageCreate)
 
 	err = dg.Open()
 	if err != nil {

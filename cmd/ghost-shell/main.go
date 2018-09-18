@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 
@@ -15,39 +15,23 @@ func die(err error) {
 	os.Exit(1)
 }
 
-func printTokens(toks []*shell.Token) {
-	for _, tok := range toks {
-		lit := tok.Literal
-		if tok.Kind == shell.NEWLINE {
-			lit = ""
-		}
-		fmt.Printf("%d:%d %s %s\n", tok.Pos.Line, tok.Pos.Column, shell.TokenNames[tok.Kind], lit)
-	}
-}
-
 func main() {
-	r := bufio.NewReader(os.Stdin)
-	scanner := shell.NewScanner(r)
-
-loopEnd:
-	for {
-		fmt.Printf(prompt)
-		toks := []*shell.Token{}
+	evaluator := shell.NewEvaluator(bytes.NewReader(nil), os.Stdout, os.Stderr)
+	if len(os.Args) > 1 {
+		file, err := os.Open(os.Args[1])
+		if err != nil {
+			die(err)
+		}
+		prog, err := shell.Parse(file)
+		evaluator.Eval(prog)
+	} else {
 		for {
-			tok, err := scanner.Scan()
+			fmt.Printf(prompt)
+			prog, err := shell.Parse(os.Stdin)
 			if err != nil {
 				die(err)
 			}
-			toks = append(toks, tok)
-			if tok.Kind == shell.NEWLINE {
-				printTokens(toks)
-				break
-			}
-			if tok.Kind == shell.EOF {
-				fmt.Println()
-				printTokens(toks)
-				break loopEnd
-			}
+			evaluator.Eval(prog)
 		}
 	}
 }

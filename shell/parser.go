@@ -48,7 +48,8 @@ func (p *parser) acceptKeyword(keyword string) bool {
 
 func (p *parser) expect(kind TokenKind) *Token {
 	if p.tok.Kind != kind {
-		p.expectError(kind)
+		msg := fmt.Sprintf("expected next token to be %s, got %s instead", kind, p.tok.Kind)
+		p.error(p.tok.Pos, msg)
 	}
 	tok := p.tok
 	p.next() // make progress
@@ -58,22 +59,22 @@ func (p *parser) expect(kind TokenKind) *Token {
 func (p *parser) expectKeyword(keyword string) bool {
 	ret := p.tok.Kind == STRING && p.tok.Literal == keyword
 	if !ret {
-		msg := fmt.Sprintf("expected next token to be STRING(%#v), got %s(%#v) instead", keyword, p.tok.Kind, p.tok.Literal)
+		var msg string
+		if p.tok.Kind == STRING {
+			msg = fmt.Sprintf("expected next token to be %q, got %q instead", keyword, p.tok.Literal)
+		} else {
+			msg = fmt.Sprintf("expected next token to be %q, got %s instead", keyword, p.tok.Kind)
+		}
 		p.error(p.tok.Pos, msg)
 	}
 	p.next() // make progress
 	return ret
 }
 
-func (p *parser) expectError(kind TokenKind) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead", kind, p.tok.Kind)
-	p.error(p.tok.Pos, msg)
-}
-
 func (p *parser) parse() *Program {
 	prog := &Program{}
+	p.next()
 	for {
-		p.next()
 		if p.accept(EOF) {
 			break
 		}
@@ -126,7 +127,14 @@ func (p *parser) parseIfStmt() *IfStmt {
 
 func (p *parser) parseIfBlock() *BlockStmt {
 	block := &BlockStmt{}
-	for !p.acceptKeyword("end") && !p.acceptKeyword("else") {
+	for {
+		if p.accept(EOF) {
+			p.error(p.tok.Pos, "unexpected EOF")
+			break
+		}
+		if p.acceptKeyword("end") || p.acceptKeyword("else") {
+			break
+		}
 		stmt := p.parseStmt()
 		block.List = append(block.List, stmt)
 	}
@@ -137,6 +145,10 @@ func (p *parser) parseCommand() Stmt {
 	cmd := &CommandStmt{}
 	cmd.Command = p.parseWord()
 	for !p.accept(TERMINATOR) {
+		if p.accept(EOF) {
+			p.error(p.tok.Pos, "unexpected EOF")
+			break
+		}
 		word := p.parseWord()
 		cmd.Args = append(cmd.Args, word)
 	}

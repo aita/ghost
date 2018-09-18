@@ -59,6 +59,9 @@ func (e *Environment) Stdout() io.Writer {
 
 func (env *Environment) GetStatus() int {
 	s, _ := env.Get(STATUS)
+	if s == "" {
+		return 0
+	}
 	status, _ := strconv.Atoi(s)
 	return status
 }

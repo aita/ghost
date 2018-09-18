@@ -1,4 +1,4 @@
-package ghost
+package main
 
 import (
 	"fmt"

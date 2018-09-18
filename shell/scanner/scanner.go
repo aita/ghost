@@ -1,56 +1,22 @@
-package shell
+package scanner
 
 import (
 	"bufio"
+	"github.com/aita/ghost/shell/token"
 	"io"
 	"strings"
 	"unicode"
 )
 
-type Position struct {
-	Offset int // offset, starting at 0
-	Line   int // line number, starting at 1
-	Column int // column number, starting at 1 (character count per line)
-}
-
-type TokenKind int
-
-// The list of kinds of token
-const (
-	EOF    = -1
-	STRING = iota
-	TERMINATOR
-)
-
-var tokens = map[TokenKind]string{
-	EOF:        "EOF",
-	STRING:     "STRING",
-	TERMINATOR: "TERMINATOR",
-}
-
-func (kind TokenKind) String() string {
-	name, ok := tokens[kind]
-	if !ok {
-		return "UNKNOWN"
-	}
-	return name
-}
-
-type Token struct {
-	Kind    TokenKind
-	Literal string
-	Pos     Position
-}
-
-func newToken(kind TokenKind, lit string, pos Position) *Token {
-	return &Token{
+func newToken(kind token.TokenKind, lit string, pos token.Position) *token.Token {
+	return &token.Token{
 		Kind:    kind,
 		Literal: lit,
 		Pos:     pos,
 	}
 }
 
-type ErrorHandler func(pos Position, msg string)
+type ErrorHandler func(pos token.Position, msg string)
 
 type Scanner struct {
 	ErrorCount       int
@@ -60,7 +26,7 @@ type Scanner struct {
 	insertTerminator bool
 	sb               strings.Builder
 	lastSize         int
-	pos              Position
+	pos              token.Position
 }
 
 func NewScanner(r io.Reader, errHandler ErrorHandler) *Scanner {
@@ -70,7 +36,7 @@ func NewScanner(r io.Reader, errHandler ErrorHandler) *Scanner {
 		src:              bufio.NewReader(r),
 		ch:               ' ',
 		insertTerminator: false,
-		pos: Position{
+		pos: token.Position{
 			Line:   1,
 			Column: 1,
 		},
@@ -88,7 +54,7 @@ func (s *Scanner) next() {
 	ch, size, err := s.src.ReadRune()
 	if err != nil {
 		if err == io.EOF {
-			ch = EOF
+			ch = token.EOF
 		} else {
 			s.error(err.Error())
 		}
@@ -105,7 +71,7 @@ func (s *Scanner) next() {
 	s.ch = ch
 }
 
-func (s *Scanner) Scan() *Token {
+func (s *Scanner) Scan() *token.Token {
 scanAgain:
 	pos := s.pos
 	for {
@@ -114,30 +80,30 @@ scanAgain:
 		}
 		if s.ch == '\n' && s.insertTerminator {
 			s.insertTerminator = false
-			return newToken(TERMINATOR, "\n", pos)
+			return newToken(token.TERMINATOR, "\n", pos)
 		}
 		s.next()
 		pos = s.pos
 	}
 
 	switch s.ch {
-	case EOF:
+	case token.EOF:
 		if s.insertTerminator {
 			s.insertTerminator = false
-			return newToken(TERMINATOR, "", pos)
+			return newToken(token.TERMINATOR, "", pos)
 		}
-		return newToken(EOF, "", pos)
+		return newToken(token.EOF, "", pos)
 	case ';':
 		s.insertTerminator = false
 		s.next()
-		return newToken(TERMINATOR, ";", pos)
+		return newToken(token.TERMINATOR, ";", pos)
 	case '#':
 		s.skipComment()
 		goto scanAgain
 	case '\'', '"':
 		s.insertTerminator = true
 		lit := s.scanQuotedString()
-		return newToken(STRING, lit, pos)
+		return newToken(token.STRING, lit, pos)
 	default:
 		head := ""
 		if s.ch == '\\' {
@@ -151,13 +117,13 @@ scanAgain:
 
 		s.insertTerminator = true
 		lit := s.scanString(head)
-		return newToken(STRING, lit, pos)
+		return newToken(token.STRING, lit, pos)
 	}
 }
 
 func (s *Scanner) skipComment() {
 	for {
-		if s.ch == EOF || s.ch == '\r' || s.ch == '\n' {
+		if s.ch == token.EOF || s.ch == '\r' || s.ch == '\n' {
 			break
 		}
 		s.sb.WriteRune(s.ch)
@@ -171,12 +137,12 @@ func (s *Scanner) scanString(head string) string {
 scanEnd:
 	for {
 		switch s.ch {
-		case EOF, ';', '\'', '"':
+		case token.EOF, ';', '\'', '"':
 			break scanEnd
 		case '\\':
 			s.sb.WriteRune(s.ch)
 			s.next()
-			if s.ch == EOF {
+			if s.ch == token.EOF {
 				s.error("unexpected end of string")
 				break scanEnd
 			}
@@ -198,7 +164,7 @@ func (s *Scanner) scanQuotedString() string {
 	s.sb.WriteRune(quote)
 	for {
 		s.next()
-		if s.ch == EOF {
+		if s.ch == token.EOF {
 			s.error("unexpected end of string")
 			break
 		} else if s.ch == '\'' || s.ch == '"' {
@@ -208,7 +174,7 @@ func (s *Scanner) scanQuotedString() string {
 			}
 		} else if s.ch == '\\' {
 			s.next()
-			if s.ch == EOF {
+			if s.ch == token.EOF {
 				s.error("unexpected end of string")
 				break
 			}

@@ -1,7 +1,8 @@
-package shell
+package eval
 
 import (
 	"fmt"
+	"github.com/aita/ghost/shell/ast"
 )
 
 type Command interface {
@@ -17,32 +18,32 @@ func (e *Evaluator) error(env *Environment, msg string) {
 	env.SetStatus(127)
 }
 
-func (e *Evaluator) Eval(env *Environment, node Node) {
+func (e *Evaluator) Eval(env *Environment, node ast.Node) {
 	switch node := node.(type) {
-	case *Program:
+	case *ast.Program:
 		e.evalProgram(env, node)
 
-	case *IfStmt:
+	case *ast.IfStmt:
 		e.evalIfStmt(env, node)
 
-	case *BlockStmt:
+	case *ast.BlockStmt:
 		e.evalBlockStmt(env, node)
 
-	case *CommandStmt:
+	case *ast.CommandStmt:
 		e.evalCommandStmt(env, node)
 
-	case *BadStmt:
+	case *ast.BadStmt:
 		e.error(env, "bad statement")
 	}
 }
 
-func (e *Evaluator) evalProgram(env *Environment, prog *Program) {
+func (e *Evaluator) evalProgram(env *Environment, prog *ast.Program) {
 	for _, stmt := range prog.Body {
 		e.Eval(env, stmt)
 	}
 }
 
-func (e *Evaluator) evalIfStmt(env *Environment, ifStmt *IfStmt) {
+func (e *Evaluator) evalIfStmt(env *Environment, ifStmt *ast.IfStmt) {
 	e.Eval(env, ifStmt.Cond)
 	if env.GetStatus() == 0 {
 		e.Eval(env, ifStmt.Body)
@@ -51,13 +52,13 @@ func (e *Evaluator) evalIfStmt(env *Environment, ifStmt *IfStmt) {
 	}
 }
 
-func (e *Evaluator) evalBlockStmt(env *Environment, blockStmt *BlockStmt) {
+func (e *Evaluator) evalBlockStmt(env *Environment, blockStmt *ast.BlockStmt) {
 	for _, stmt := range blockStmt.List {
 		e.Eval(env, stmt)
 	}
 }
 
-func (e *Evaluator) evalCommandStmt(env *Environment, cmdStmt *CommandStmt) {
+func (e *Evaluator) evalCommandStmt(env *Environment, cmdStmt *ast.CommandStmt) {
 	name := cmdStmt.Command.Value
 	command := e.findCommand(name)
 	if command == nil {

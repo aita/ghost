@@ -1,4 +1,4 @@
-package main
+package ghost
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
 
-	"github.com/aita/ghost"
+	"github.com/aita/ghost/discord"
 )
 
 func die(err error) {
@@ -33,7 +33,7 @@ func main() {
 		die(err)
 	}
 
-	h := ghost.MakeDiscordHandler()
+	h := discord.MakeDiscordHandler()
 	dg.AddHandler(h.OnMessageCreate)
 
 	err = dg.Open()

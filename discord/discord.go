@@ -1,18 +1,20 @@
-package ghost
+package discord
 
 import (
 	"bytes"
 	"log"
 
 	"github.com/bwmarrin/discordgo"
+
+	"github.com/aita/ghost/shell"
 )
 
 type DiscordHandler struct {
-	sh *Shell
+	sh *shell.Shell
 }
 
 func MakeDiscordHandler() *DiscordHandler {
-	sh := &Shell{}
+	sh := &shell.Shell{}
 	sh.Init()
 	return &DiscordHandler{
 		sh: sh,

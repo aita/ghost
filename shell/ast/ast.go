@@ -1,4 +1,6 @@
-package shell
+package ast
+
+import "github.com/aita/ghost/shell/token"
 
 type Node interface {
 }
@@ -12,7 +14,7 @@ type Program struct {
 }
 
 type Word struct {
-	Token *Token
+	Token *token.Token
 	Value string
 }
 

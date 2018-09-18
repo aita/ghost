@@ -26,7 +26,10 @@ type BlockStmt struct {
 }
 
 type IfStmt struct {
-	Cond *CommandStmt
+	Cond Stmt
 	Body *BlockStmt
 	Else Stmt
+}
+
+type BadStmt struct {
 }

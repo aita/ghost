@@ -46,22 +46,28 @@ func (p *parser) acceptKeyword(keyword string) bool {
 	return p.tok.Kind == STRING && p.tok.Literal == keyword
 }
 
-func (p *parser) expect(kind TokenKind) bool {
-	if p.tok.Kind == kind {
-		return true
+func (p *parser) expect(kind TokenKind) *Token {
+	if p.tok.Kind != kind {
+		p.expectError(kind)
 	}
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead", kind, p.tok.Kind)
-	p.error(p.tok.Pos, msg)
-	return false
+	tok := p.tok
+	p.next() // make progress
+	return tok
 }
 
 func (p *parser) expectKeyword(keyword string) bool {
-	if p.tok.Kind == STRING && p.tok.Literal == keyword {
-		return true
+	ret := p.tok.Kind == STRING && p.tok.Literal == keyword
+	if !ret {
+		msg := fmt.Sprintf("expected next token to be STRING(%#v), got %s(%#v) instead", keyword, p.tok.Kind, p.tok.Literal)
+		p.error(p.tok.Pos, msg)
 	}
-	msg := fmt.Sprintf("expected next token to be STRING(%v), got %s(%v) instead", keyword, p.tok.Kind, p.tok.Literal)
+	p.next() // make progress
+	return ret
+}
+
+func (p *parser) expectError(kind TokenKind) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead", kind, p.tok.Kind)
 	p.error(p.tok.Pos, msg)
-	return false
 }
 
 func (p *parser) parse() *Program {
@@ -72,10 +78,6 @@ func (p *parser) parse() *Program {
 			break
 		}
 		stmt := p.parseStmt()
-		if stmt == nil {
-			// maybe something wrong
-			break
-		}
 		prog.Body = append(prog.Body, stmt)
 	}
 	return prog
@@ -89,9 +91,10 @@ func (p *parser) parseStmt() Stmt {
 		return p.parseCommand()
 	}
 
-	msg := fmt.Sprintf("unexpected token %s(%v)", p.tok.Kind, p.tok.Literal)
+	msg := fmt.Sprintf("unexpected token %s(%#v)", p.tok.Kind, p.tok.Literal)
 	p.error(p.tok.Pos, msg)
-	return nil
+	p.next() // make progress
+	return &BadStmt{}
 }
 
 func (p *parser) parseIfStmt() *IfStmt {
@@ -103,26 +106,20 @@ func (p *parser) parseIfStmt() *IfStmt {
 	expectEnd := true
 	if p.acceptKeyword("else") {
 		p.next()
-		if !p.expect(TERMINATOR) {
-			return nil
-		}
-		p.next()
-		if p.acceptKeyword("if") {
+		if p.accept(TERMINATOR) {
+			p.next()
+			ifStmt.Else = p.parseIfBlock()
+		} else if p.acceptKeyword("if") {
 			p.next()
 			ifStmt.Else = p.parseIfStmt()
 			expectEnd = false
 		} else {
-			ifStmt.Else = p.parseIfBlock()
+			ifStmt.Else = &BadStmt{}
 		}
 	}
 	if expectEnd {
-		if !p.expectKeyword("end") {
-			return nil
-		}
-		p.next()
-		if !p.expect(TERMINATOR) {
-			return nil
-		}
+		p.expectKeyword("end")
+		p.expect(TERMINATOR)
 	}
 	return ifStmt
 }
@@ -131,42 +128,26 @@ func (p *parser) parseIfBlock() *BlockStmt {
 	block := &BlockStmt{}
 	for !p.acceptKeyword("end") && !p.acceptKeyword("else") {
 		stmt := p.parseStmt()
-		if stmt == nil {
-			// something maybe wrong
-			break
-		}
 		block.List = append(block.List, stmt)
 	}
 	return block
 }
 
-func (p *parser) parseCommand() *CommandStmt {
+func (p *parser) parseCommand() Stmt {
 	cmd := &CommandStmt{}
-	if !p.expect(STRING) {
-		return nil
-	}
 	cmd.Command = p.parseWord()
-
-	p.next()
 	for !p.accept(TERMINATOR) {
-		if p.accept(STRING) {
-			word := p.parseWord()
-			cmd.Args = append(cmd.Args, word)
-		} else {
-			msg := fmt.Sprintf("unexpected token %s(%v)", p.tok.Kind, p.tok.Literal)
-			p.error(p.tok.Pos, msg)
-			return nil
-		}
-		p.next()
+		word := p.parseWord()
+		cmd.Args = append(cmd.Args, word)
 	}
-
 	p.next()
 	return cmd
 }
 
 func (p *parser) parseWord() *Word {
+	tok := p.expect(STRING)
 	return &Word{
-		Token: p.tok,
-		Value: p.tok.Literal,
+		Token: tok,
+		Value: tok.Literal,
 	}
 }

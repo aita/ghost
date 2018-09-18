@@ -24,8 +24,7 @@ func TestParseCommandStmt(t *testing.T) {
 }
 
 func TestParseIfStmt(t *testing.T) {
-	input := `
-	if test 1;
+	input := `if test 1;
 		echo line1;
 		echo line2
 	end
@@ -38,7 +37,10 @@ func TestParseIfStmt(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected *IfStmt, got=%T", prog.Body[0])
 	}
-	cond := stmt.Cond
+	cond, ok := stmt.Cond.(*CommandStmt)
+	if !ok {
+		t.Fatalf("expected *CommandStmt, got=%T", cond)
+	}
 	assert.Equal(t, "test", cond.Command.Value)
 	assert.Len(t, cond.Args, 1)
 	assert.Equal(t, "1", cond.Args[0].Value)
@@ -78,7 +80,10 @@ func TestParseIfStmtWithElse(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected *IfStmt, got=%T", prog.Body[0])
 	}
-	cond := stmt.Cond
+	cond, ok := stmt.Cond.(*CommandStmt)
+	if !ok {
+		t.Fatalf("expected *CommandStmt, got=%T", cond)
+	}
 	assert.Equal(t, "test", cond.Command.Value)
 	assert.Len(t, cond.Args, 1)
 	assert.Equal(t, "1", cond.Args[0].Value)

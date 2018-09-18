@@ -13,98 +13,159 @@ func TestScanner(t *testing.T) {
 		toks  []*Token
 	}{
 		{
-			"echo hello;\n echo world",
+			"echo hello;\necho world",
 			[]*Token{
 				&Token{
 					Kind:    STRING,
 					Literal: "echo",
-					Pos:     Position{Line: 1, Column: 1},
+					Pos:     Position{Offset: 0, Line: 1, Column: 1},
 				},
 				&Token{
 					Kind:    STRING,
 					Literal: "hello",
-					Pos:     Position{Line: 1, Column: 6},
+					Pos:     Position{Offset: 5, Line: 1, Column: 6},
+				},
+				&Token{
+					Kind:    TERMINATOR,
+					Literal: ";",
+					Pos:     Position{Offset: 10, Line: 1, Column: 11},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "echo",
+					Pos:     Position{Offset: 12, Line: 2, Column: 1},
 				},
 				&Token{
 					Kind:    STRING,
 					Literal: "world",
-					Pos:     Position{Line: 1, Column: 12},
+					Pos:     Position{Offset: 17, Line: 2, Column: 6},
 				},
 				&Token{
-					Kind:    NEWLINE,
-					Literal: "\n",
-					Pos:     Position{Line: 1, Column: 17},
+					Kind:    TERMINATOR,
+					Literal: "",
+					Pos:     Position{Offset: 22, Line: 2, Column: 11},
 				},
 				&Token{
 					Kind:    EOF,
 					Literal: "",
-					Pos:     Position{Line: 1, Column: 17},
+					Pos:     Position{Offset: 22, Line: 2, Column: 11},
 				},
 			},
 		},
 		{
-			`echo "hello"; echo 'world'`,
+			`if test 1; echo 'world'; end`,
 			[]*Token{
 				&Token{
 					Kind:    STRING,
-					Literal: "echo",
-					Pos:     Position{Line: 1, Column: 1},
+					Literal: "if",
+					Pos:     Position{Offset: 0, Line: 1, Column: 1},
 				},
 				&Token{
 					Kind:    STRING,
-					Literal: `"hello"`,
-					Pos:     Position{Line: 1, Column: 6},
+					Literal: "test",
+					Pos:     Position{Offset: 3, Line: 1, Column: 4},
 				},
 				&Token{
-					Kind:    SEMICOLON,
+					Kind:    STRING,
+					Literal: "1",
+					Pos:     Position{Offset: 8, Line: 1, Column: 9},
+				},
+				&Token{
+					Kind:    TERMINATOR,
 					Literal: ";",
-					Pos:     Position{Line: 1, Column: 17},
+					Pos:     Position{Offset: 9, Line: 1, Column: 10},
 				},
 				&Token{
 					Kind:    STRING,
 					Literal: "echo",
-					Pos:     Position{Line: 1, Column: 19},
+					Pos:     Position{Offset: 11, Line: 1, Column: 12},
 				},
 				&Token{
 					Kind:    STRING,
 					Literal: "'world'",
-					Pos:     Position{Line: 1, Column: 24},
+					Pos:     Position{Offset: 16, Line: 1, Column: 17},
+				},
+				&Token{
+					Kind:    TERMINATOR,
+					Literal: ";",
+					Pos:     Position{Offset: 23, Line: 1, Column: 24},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "end",
+					Pos:     Position{Offset: 25, Line: 1, Column: 26},
+				},
+				&Token{
+					Kind:    TERMINATOR,
+					Literal: "",
+					Pos:     Position{Offset: 28, Line: 1, Column: 29},
 				},
 				&Token{
 					Kind:    EOF,
 					Literal: "",
-					Pos:     Position{Line: 1, Column: 35},
+					Pos:     Position{Offset: 28, Line: 1, Column: 29},
 				},
 			},
 		},
 		{
-			"echo hello  # put comment here",
+			`echo "hello world"  # comment`,
 			[]*Token{
 				&Token{
 					Kind:    STRING,
 					Literal: "echo",
-					Pos:     Position{Line: 1, Column: 1},
+					Pos:     Position{Offset: 0, Line: 1, Column: 1},
 				},
 				&Token{
 					Kind:    STRING,
-					Literal: "hello",
-					Pos:     Position{Line: 1, Column: 6},
+					Literal: `"hello world"`,
+					Pos:     Position{Offset: 5, Line: 1, Column: 6},
 				},
 				&Token{
-					Kind:    COMMENT,
-					Literal: "# put comment here",
-					Pos:     Position{Line: 1, Column: 13},
+					Kind:    TERMINATOR,
+					Literal: "",
+					Pos:     Position{Offset: 29, Line: 1, Column: 30},
 				},
 				&Token{
 					Kind:    EOF,
 					Literal: "",
-					Pos:     Position{Line: 1, Column: 31},
+					Pos:     Position{Offset: 29, Line: 1, Column: 30},
+				},
+			},
+		},
+		{
+			`echo hello \
+world`,
+			[]*Token{
+				&Token{
+					Kind:    STRING,
+					Literal: "echo",
+					Pos:     Position{Offset: 0, Line: 1, Column: 1},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "hello",
+					Pos:     Position{Offset: 5, Line: 1, Column: 6},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "world",
+					Pos:     Position{Offset: 13, Line: 2, Column: 1},
+				},
+				&Token{
+					Kind:    TERMINATOR,
+					Literal: "",
+					Pos:     Position{Offset: 18, Line: 2, Column: 6},
+				},
+				&Token{
+					Kind:    EOF,
+					Literal: "",
+					Pos:     Position{Offset: 18, Line: 2, Column: 6},
 				},
 			},
 		},
 	} {
 		r := strings.NewReader(tt.input)
-		scanner := NewScanner(r)
+		scanner := NewScanner(r, nil)
 		for _, expected := range tt.toks {
 			tok := scanner.Scan()
 			assert.Equal(t, expected, tok)
@@ -116,36 +177,38 @@ func TestReadString(t *testing.T) {
 	for _, tt := range []struct {
 		input    string
 		expected string
-		err      error
 	}{
 		// tests with escape sequence
-		{"hello\\'", "hello'", nil},
-		{"hello\\n", "hello\n", nil},
-		{"hello\\ world", "hello world", nil},
-		// tests with trailing backslash and newline
-		{"hello\\\r", "hello", nil},
-		{"hello\\\r\n", "hello", nil},
-		{"hello\\\n", "hello", nil},
+		{"hello\\'", "hello'"},
+		{"hello\\n", "hello\n"},
+		{"hello\\ world", "hello world"},
+		// tests with trailing backslash and TERMINATOR
+		{"hello\\\r", "hello"},
+		{"hello\\\r\n", "hello"},
+		{"hello\\\n", "hello"},
 		// tests with trailing backslash and string
-		{"hello\\\nworld", "helloworld", nil},
-		{"hello\\\rworld", "helloworld", nil},
-		{"hello\\\r\nworld", "helloworld", nil},
-		// tests with trailing backslash and nothing
-		{"hello\\", "hello", nil},
+		{"hello\\\nworld", "helloworld"},
+		{"hello\\\rworld", "helloworld"},
+		{"hello\\\r\nworld", "helloworld"},
 	} {
 		r := strings.NewReader(tt.input)
-		scanner := NewScanner(r)
+		scanner := NewScanner(r, nil)
 		scanner.next()
-		lit := scanner.scanString()
+		lit := scanner.scanString("")
 		assert.Equal(t, tt.expected, lit)
 	}
 }
 
 func TestReadQuotedString(t *testing.T) {
+	type Error struct {
+		tok Position
+		msg string
+	}
+
 	for _, tt := range []struct {
 		input    string
 		expected string
-		err      error
+		err      *Error
 	}{
 		{`"hello"`, `"hello"`, nil},
 		{`'hello'`, `'hello'`, nil},
@@ -153,13 +216,31 @@ func TestReadQuotedString(t *testing.T) {
 		{`'hello world\n'`, `'hello world\n'`, nil},
 		{`"\"double quote\""`, `""double quote""`, nil},
 		{`'It\'s a small world'`, `'It's a small world'`, nil},
-		{`"hello`, `"hello`, nil},
-		{`"hello\`, `"hello`, nil},
+		{
+			`"hello`,
+			`"hello`,
+			&Error{
+				Position{Offset: 6, Line: 1, Column: 7},
+				"unexpected end of string",
+			},
+		},
+		{
+			`"hello\`,
+			`"hello`,
+			&Error{
+				Position{Offset: 7, Line: 1, Column: 8},
+				"unexpected end of string",
+			},
+		},
 	} {
 		r := strings.NewReader(tt.input)
-		scanner := NewScanner(r)
+		var err *Error
+		scanner := NewScanner(r, func(pos Position, msg string) {
+			err = &Error{pos, msg}
+		})
 		scanner.next()
 		lit := scanner.scanQuotedString()
 		assert.Equal(t, tt.expected, lit)
+		assert.Equal(t, tt.err, err)
 	}
 }

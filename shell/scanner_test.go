@@ -53,7 +53,7 @@ func TestScanner(t *testing.T) {
 			},
 		},
 		{
-			`if test 1; echo 'world'; end`,
+			`if test 1; echo 'one'; else; echo "other"; end`,
 			[]*Token{
 				&Token{
 					Kind:    STRING,
@@ -82,13 +82,33 @@ func TestScanner(t *testing.T) {
 				},
 				&Token{
 					Kind:    STRING,
-					Literal: "'world'",
+					Literal: "'one'",
 					Pos:     Position{Offset: 16, Line: 1, Column: 17},
 				},
 				&Token{
 					Kind:    TERMINATOR,
 					Literal: ";",
+					Pos:     Position{Offset: 21, Line: 1, Column: 22},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "else",
 					Pos:     Position{Offset: 23, Line: 1, Column: 24},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: "echo",
+					Pos:     Position{Offset: 11, Line: 1, Column: 12},
+				},
+				&Token{
+					Kind:    STRING,
+					Literal: `"other"`,
+					Pos:     Position{Offset: 16, Line: 1, Column: 17},
+				},
+				&Token{
+					Kind:    TERMINATOR,
+					Literal: ";",
+					Pos:     Position{Offset: 21, Line: 1, Column: 22},
 				},
 				&Token{
 					Kind:    STRING,
@@ -178,18 +198,14 @@ func TestReadString(t *testing.T) {
 		input    string
 		expected string
 	}{
+		{`hello'`, `hello`},
+		{`hello;`, `hello`},
+		{"hello\n", `hello`},
+
 		// tests with escape sequence
-		{"hello\\'", "hello'"},
-		{"hello\\n", "hello\n"},
-		{"hello\\ world", "hello world"},
-		// tests with trailing backslash and TERMINATOR
-		{"hello\\\r", "hello"},
-		{"hello\\\r\n", "hello"},
-		{"hello\\\n", "hello"},
-		// tests with trailing backslash and string
-		{"hello\\\nworld", "helloworld"},
-		{"hello\\\rworld", "helloworld"},
-		{"hello\\\r\nworld", "helloworld"},
+		{`hello\'`, `hello\'`},
+		{`hello\n`, `hello\n`},
+		{`hello\ world`, `hello\ world`},
 	} {
 		r := strings.NewReader(tt.input)
 		scanner := NewScanner(r, nil)

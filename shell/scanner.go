@@ -173,6 +173,13 @@ scanEnd:
 		switch s.ch {
 		case EOF, ';', '\'', '"':
 			break scanEnd
+		case '\\':
+			s.sb.WriteRune(s.ch)
+			s.next()
+			if s.ch == EOF {
+				s.error("unexpected end of string")
+				break scanEnd
+			}
 		default:
 			if unicode.IsSpace(s.ch) {
 				break scanEnd

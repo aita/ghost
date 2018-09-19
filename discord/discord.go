@@ -3,6 +3,7 @@ package discord
 import (
 	"bytes"
 	"log"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -31,7 +32,7 @@ func (h *DiscordHandler) OnMessageCreate(s *discordgo.Session, m *discordgo.Mess
 	buf := bytes.NewBuffer(nil)
 	h.sh.Exec(buf, msg)
 	out := buf.String()
-	if out != "" {
+	if strings.TrimSpace(out) != "" {
 		if _, err := s.ChannelMessageSend(m.ChannelID, out); err != nil {
 			log.Println(err)
 		}

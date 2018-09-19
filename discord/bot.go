@@ -2,6 +2,7 @@ package discord
 
 import (
 	"bytes"
+	"io/ioutil"
 	"log"
 	"strings"
 
@@ -18,6 +19,8 @@ type Bot struct {
 func MakeBot(token string) (bot Bot, err error) {
 	bot.sh = &shell.Shell{}
 	bot.sh.Init()
+	bot.sh.In = bytes.NewReader(nil)
+	bot.sh.Out = bytes.NewBuffer(nil)
 
 	bot.session, err = discordgo.New("Bot " + token)
 	if err != nil {
@@ -44,13 +47,14 @@ func (bot Bot) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	}
 
 	msg := m.Content
-	buf := bytes.NewBuffer(nil)
-	bot.sh.Exec(buf, msg)
-	out := buf.String()
-	if strings.TrimSpace(out) == "" {
-		out = "`no output`"
+	bot.sh.Exec(msg)
+
+	buf, _ := ioutil.ReadAll(bot.sh.Out.(*bytes.Buffer))
+	result := string(buf)
+	if strings.TrimSpace(result) == "" {
+		result = "`no output`"
 	}
-	if _, err := s.ChannelMessageSend(m.ChannelID, out); err != nil {
+	if _, err := s.ChannelMessageSend(m.ChannelID, result); err != nil {
 		log.Println(err)
 	}
 }

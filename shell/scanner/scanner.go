@@ -2,10 +2,11 @@ package scanner
 
 import (
 	"bufio"
-	"github.com/aita/ghost/shell/token"
 	"io"
 	"strings"
 	"unicode"
+
+	"github.com/aita/ghost/shell/token"
 )
 
 func newToken(kind token.TokenKind, lit string, pos token.Position) *token.Token {

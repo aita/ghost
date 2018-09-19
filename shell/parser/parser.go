@@ -2,13 +2,13 @@ package parser
 
 import (
 	"fmt"
-	"github.com/aita/ghost/shell/ast"
-	"github.com/aita/ghost/shell/token"
 	"io"
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/aita/ghost/shell/ast"
 	"github.com/aita/ghost/shell/scanner"
+	"github.com/aita/ghost/shell/token"
 )
 
 func Parse(r io.Reader) (prog *ast.Program, err error) {

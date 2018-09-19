@@ -21,6 +21,7 @@ func (sh *Shell) Init() {
 		In:  bytes.NewReader(nil),
 		Out: ioutil.Discard,
 	}
+
 	commands := map[string]eval.Command{}
 	for name, cmd := range builtins {
 		commands[name] = cmd

@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
 
 	"github.com/aita/ghost/discord"
@@ -28,21 +27,23 @@ func main() {
 	}
 
 	token := viper.GetString("discord.token")
-	dg, err := discordgo.New("Bot " + token)
+	bot, err := discord.MakeBot(token)
 	if err != nil {
 		die(err)
 	}
 
-	h := discord.MakeDiscordHandler()
-	dg.AddHandler(h.OnMessageCreate)
-
-	err = dg.Open()
+	err = bot.Start()
 	if err != nil {
 		die(err)
 	}
-	defer dg.Close()
+	defer func() {
+		err := bot.Close()
+		if err != nil {
+			die(err)
+		}
+	}()
 
-	fmt.Println("GHOST is now running.  Press CTRL-C to exit.")
+	fmt.Println("GHOST is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc

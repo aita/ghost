@@ -1,23 +1,21 @@
-package scanner
+package shell
 
 import (
 	"bufio"
 	"io"
 	"strings"
 	"unicode"
-
-	"github.com/aita/ghost/shell/token"
 )
 
-func newToken(kind token.TokenKind, lit string, pos token.Position) *token.Token {
-	return &token.Token{
+func newToken(kind TokenKind, lit string, pos Position) *Token {
+	return &Token{
 		Kind:    kind,
 		Literal: lit,
 		Pos:     pos,
 	}
 }
 
-type ErrorHandler func(pos token.Position, msg string)
+type ErrorHandler func(pos Position, msg string)
 
 type Scanner struct {
 	ErrorCount       int
@@ -27,7 +25,7 @@ type Scanner struct {
 	insertTerminator bool
 	sb               strings.Builder
 	lastSize         int
-	pos              token.Position
+	pos              Position
 }
 
 func NewScanner(r io.Reader, errHandler ErrorHandler) *Scanner {
@@ -37,7 +35,7 @@ func NewScanner(r io.Reader, errHandler ErrorHandler) *Scanner {
 		src:              bufio.NewReader(r),
 		ch:               ' ',
 		insertTerminator: false,
-		pos: token.Position{
+		pos: Position{
 			Line:   1,
 			Column: 1,
 		},
@@ -55,7 +53,7 @@ func (s *Scanner) next() {
 	ch, size, err := s.src.ReadRune()
 	if err != nil {
 		if err == io.EOF {
-			ch = token.EOF
+			ch = EOF
 		} else {
 			s.error(err.Error())
 		}
@@ -72,7 +70,7 @@ func (s *Scanner) next() {
 	s.ch = ch
 }
 
-func (s *Scanner) Scan() *token.Token {
+func (s *Scanner) Scan() *Token {
 scanAgain:
 	pos := s.pos
 	for {
@@ -81,30 +79,30 @@ scanAgain:
 		}
 		if s.ch == '\n' && s.insertTerminator {
 			s.insertTerminator = false
-			return newToken(token.TERMINATOR, "\n", pos)
+			return newToken(TERMINATOR, "\n", pos)
 		}
 		s.next()
 		pos = s.pos
 	}
 
 	switch s.ch {
-	case token.EOF:
+	case EOF:
 		if s.insertTerminator {
 			s.insertTerminator = false
-			return newToken(token.TERMINATOR, "", pos)
+			return newToken(TERMINATOR, "", pos)
 		}
-		return newToken(token.EOF, "", pos)
+		return newToken(EOF, "", pos)
 	case ';':
 		s.insertTerminator = false
 		s.next()
-		return newToken(token.TERMINATOR, ";", pos)
+		return newToken(TERMINATOR, ";", pos)
 	case '#':
 		s.skipComment()
 		goto scanAgain
 	case '\'', '"':
 		s.insertTerminator = true
 		lit := s.scanQuotedString()
-		return newToken(token.STRING, lit, pos)
+		return newToken(STRING, lit, pos)
 	default:
 		head := ""
 		if s.ch == '\\' {
@@ -118,13 +116,13 @@ scanAgain:
 
 		s.insertTerminator = true
 		lit := s.scanString(head)
-		return newToken(token.STRING, lit, pos)
+		return newToken(STRING, lit, pos)
 	}
 }
 
 func (s *Scanner) skipComment() {
 	for {
-		if s.ch == token.EOF || s.ch == '\r' || s.ch == '\n' {
+		if s.ch == EOF || s.ch == '\r' || s.ch == '\n' {
 			break
 		}
 		s.sb.WriteRune(s.ch)
@@ -138,12 +136,12 @@ func (s *Scanner) scanString(head string) string {
 scanEnd:
 	for {
 		switch s.ch {
-		case token.EOF, ';', '\'', '"':
+		case EOF, ';', '\'', '"':
 			break scanEnd
 		case '\\':
 			s.sb.WriteRune(s.ch)
 			s.next()
-			if s.ch == token.EOF {
+			if s.ch == EOF {
 				s.error("unexpected end of string")
 				break scanEnd
 			}
@@ -165,7 +163,7 @@ func (s *Scanner) scanQuotedString() string {
 	s.sb.WriteRune(quote)
 	for {
 		s.next()
-		if s.ch == token.EOF {
+		if s.ch == EOF {
 			s.error("unexpected end of string")
 			break
 		} else if s.ch == '\'' || s.ch == '"' {
@@ -175,7 +173,7 @@ func (s *Scanner) scanQuotedString() string {
 			}
 		} else if s.ch == '\\' {
 			s.next()
-			if s.ch == token.EOF {
+			if s.ch == EOF {
 				s.error("unexpected end of string")
 				break
 			}

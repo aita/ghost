@@ -1,4 +1,4 @@
-package token
+package shell
 
 type Position struct {
 	Offset int // offset, starting at 0

@@ -6,27 +6,24 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
-
-	"github.com/aita/ghost/shell/eval"
-	"github.com/aita/ghost/shell/parser"
 )
 
 type Shell struct {
-	env  *eval.Environment
-	eval *eval.Evaluator
+	env  *Environment
+	eval *Evaluator
 }
 
 func (sh *Shell) Init() {
-	sh.env = &eval.Environment{
+	sh.env = &Environment{
 		In:  bytes.NewReader(nil),
 		Out: ioutil.Discard,
 	}
 
-	commands := map[string]eval.Command{}
+	commands := map[string]Command{}
 	for name, cmd := range builtins {
 		commands[name] = cmd
 	}
-	sh.eval = &eval.Evaluator{
+	sh.eval = &Evaluator{
 		Commands: commands,
 	}
 }
@@ -34,7 +31,7 @@ func (sh *Shell) Init() {
 func (sh *Shell) Exec(w io.Writer, script string) {
 	sh.env.Out = w
 
-	prog, err := parser.Parse(strings.NewReader(script))
+	prog, err := Parse(strings.NewReader(script))
 	if err != nil {
 		fmt.Fprintln(w, "ghost:", err.Error())
 		return

@@ -9,12 +9,12 @@ import (
 )
 
 type Command interface {
-	Run(shell *Shell, args []string) int
+	Run(shell *Shell, env *Environment, args []string) int
 }
 
 type Shell struct {
 	status   int
-	env      *Environment
+	topLevel *Environment
 	commands map[string]Command
 
 	In  io.Reader
@@ -24,10 +24,10 @@ type Shell struct {
 func (sh *Shell) Init() {
 	sh.In = bytes.NewReader(nil)
 	sh.Out = ioutil.Discard
-
+	sh.topLevel = &Environment{}
 	sh.commands = map[string]Command{}
-	for name, cmd := range builtins {
-		sh.AddCommand(name, cmd)
+	for _, cmd := range builtins {
+		sh.AddCommand(cmd.name, cmd)
 	}
 }
 
@@ -45,7 +45,10 @@ func (sh *Shell) Exec(script string) {
 		fmt.Fprintln(sh.Out, "ghost:", err.Error())
 		return
 	}
-	sh.Eval(sh.env, prog)
+	env := &Environment{
+		outer: sh.topLevel,
+	}
+	sh.Eval(env, prog)
 }
 
 func (sh *Shell) error(env *Environment, msg string) {
@@ -104,5 +107,5 @@ func (sh *Shell) evalCommandStmt(env *Environment, cmdStmt *CommandStmt) {
 	for _, arg := range cmdStmt.Args {
 		args = append(args, arg.Value)
 	}
-	sh.status = command.Run(sh, args)
+	sh.status = command.Run(sh, env, args)
 }

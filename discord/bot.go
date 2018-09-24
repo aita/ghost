@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -15,13 +16,15 @@ type Bot struct {
 	sh      *shell.Shell
 	session *discordgo.Session
 	option  BotOption
+
+	mu sync.Mutex
 }
 
 type BotOption struct {
 	Prefix string
 }
 
-func MakeBot(token string, option BotOption) (bot Bot, err error) {
+func NewBot(token string, option BotOption) (bot *Bot, err error) {
 	sh := &shell.Shell{
 		In:  bytes.NewReader(nil),
 		Out: bytes.NewBuffer(nil),
@@ -33,7 +36,7 @@ func MakeBot(token string, option BotOption) (bot Bot, err error) {
 		return
 	}
 
-	bot = Bot{
+	bot = &Bot{
 		sh:      sh,
 		session: session,
 		option:  option,
@@ -43,17 +46,16 @@ func MakeBot(token string, option BotOption) (bot Bot, err error) {
 	return
 }
 
-func (bot Bot) Start() error {
+func (bot *Bot) Start() error {
 	return bot.session.Open()
 
 }
 
-func (bot Bot) Close() error {
+func (bot *Bot) Close() error {
 	return bot.session.Close()
 }
 
-func (bot Bot) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// ignore all messages created by the bot itself
+func (bot *Bot) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
@@ -63,14 +65,20 @@ func (bot Bot) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		return
 	}
 	script := msg[len(bot.option.Prefix):]
-	bot.sh.Exec(script)
-
+	bot.execShell(script)
 	buf, _ := ioutil.ReadAll(bot.sh.Out.(*bytes.Buffer))
-	result := string(buf)
-	if strings.TrimSpace(result) == "" {
-		result = "`no output`"
+	output := string(buf)
+	if strings.TrimSpace(output) == "" {
+		output = "`no output`"
 	}
-	if _, err := s.ChannelMessageSend(m.ChannelID, result); err != nil {
+	if _, err := s.ChannelMessageSend(m.ChannelID, output); err != nil {
 		log.Println(err)
 	}
+}
+
+func (bot *Bot) execShell(script string) {
+	bot.mu.Lock()
+	defer bot.mu.Unlock()
+
+	bot.sh.Exec(script)
 }

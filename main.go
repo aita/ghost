@@ -34,7 +34,7 @@ func main() {
 	opt := discord.BotOption{
 		Prefix: viper.GetString("shell.prefix"),
 	}
-	bot, err := discord.MakeBot(token, opt)
+	bot, err := discord.NewBot(token, opt)
 	if err != nil {
 		die(err)
 	}

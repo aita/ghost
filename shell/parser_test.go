@@ -17,10 +17,10 @@ func TestParseCommandStmt(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected *CommandStmt, got=%T", prog.Body[0])
 	}
-	assert.Equal(t, "echo", stmt.Command.Value)
-	assert.Len(t, stmt.Args, 2)
-	assert.Equal(t, "hello", stmt.Args[0].Value)
-	assert.Equal(t, "world", stmt.Args[1].Value)
+	assert.Len(t, stmt.List, 3)
+	assert.Equal(t, "echo", stmt.List[0].Value)
+	assert.Equal(t, "hello", stmt.List[1].Value)
+	assert.Equal(t, "world", stmt.List[2].Value)
 }
 
 func TestParseIfStmt(t *testing.T) {
@@ -41,25 +41,25 @@ func TestParseIfStmt(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected *CommandStmt, got=%T", cond)
 	}
-	assert.Equal(t, "test", cond.Command.Value)
-	assert.Len(t, cond.Args, 1)
-	assert.Equal(t, "1", cond.Args[0].Value)
+	assert.Len(t, cond.List, 2)
+	assert.Equal(t, "test", cond.List[0].Value)
+	assert.Equal(t, "1", cond.List[1].Value)
 
 	assert.Len(t, stmt.Body.List, 2)
 	stmt1 := stmt.Body.List[0].(*CommandStmt)
 	if !ok {
 		t.Fatalf("expected *CommandStmt, got=%T", stmt1)
 	}
-	assert.Equal(t, "echo", stmt1.Command.Value)
-	assert.Len(t, stmt1.Args, 1)
-	assert.Equal(t, "line1", stmt1.Args[0].Value)
+	assert.Len(t, stmt1.List, 2)
+	assert.Equal(t, "echo", stmt1.List[0].Value)
+	assert.Equal(t, "line1", stmt1.List[1].Value)
 	stmt2 := stmt.Body.List[1].(*CommandStmt)
 	if !ok {
 		t.Fatalf("expected *CommandStmt, got=%T", stmt2)
 	}
-	assert.Equal(t, "echo", stmt2.Command.Value)
-	assert.Len(t, stmt1.Args, 1)
-	assert.Equal(t, "line2", stmt2.Args[0].Value)
+	assert.Len(t, stmt1.List, 2)
+	assert.Equal(t, "echo", stmt2.List[0].Value)
+	assert.Equal(t, "line2", stmt2.List[1].Value)
 
 	assert.Nil(t, stmt.Else)
 }
@@ -84,18 +84,18 @@ func TestParseIfStmtWithElse(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected *CommandStmt, got=%T", cond)
 	}
-	assert.Equal(t, "test", cond.Command.Value)
-	assert.Len(t, cond.Args, 1)
-	assert.Equal(t, "1", cond.Args[0].Value)
+	assert.Len(t, cond.List, 2)
+	assert.Equal(t, "test", cond.List[0].Value)
+	assert.Equal(t, "1", cond.List[1].Value)
 
 	assert.Len(t, stmt.Body.List, 1)
 	thenStmt := stmt.Body.List[0].(*CommandStmt)
 	if !ok {
 		t.Fatalf("expected *CommandStmt, got=%T", thenStmt)
 	}
-	assert.Equal(t, "echo", thenStmt.Command.Value)
-	assert.Len(t, thenStmt.Args, 1)
-	assert.Equal(t, "if", thenStmt.Args[0].Value)
+	assert.Len(t, thenStmt.List, 2)
+	assert.Equal(t, "echo", thenStmt.List[0].Value)
+	assert.Equal(t, "if", thenStmt.List[1].Value)
 
 	elseBlock := stmt.Else.(*BlockStmt)
 	if !ok {
@@ -103,7 +103,7 @@ func TestParseIfStmtWithElse(t *testing.T) {
 	}
 	assert.Len(t, elseBlock.List, 1)
 	elseStmt := elseBlock.List[0].(*CommandStmt)
-	assert.Equal(t, "echo", elseStmt.Command.Value)
-	assert.Len(t, elseStmt.Args, 1)
-	assert.Equal(t, "else", elseStmt.Args[0].Value)
+	assert.Len(t, elseStmt.List, 2)
+	assert.Equal(t, "echo", elseStmt.List[0].Value)
+	assert.Equal(t, "else", elseStmt.List[1].Value)
 }

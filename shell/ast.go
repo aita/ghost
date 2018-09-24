@@ -17,8 +17,7 @@ type Word struct {
 }
 
 type CommandStmt struct {
-	Command *Word
-	Args    []*Word
+	List []*Word
 }
 
 type BlockStmt struct {

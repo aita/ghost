@@ -101,34 +101,20 @@ func (sh *Shell) evalBlockStmt(env *Environment, blockStmt *BlockStmt) {
 }
 
 func (sh *Shell) evalCommandStmt(env *Environment, cmdStmt *CommandStmt) {
-	sh.expandWord(env, cmdStmt.Command)
-	command := sh.FindCommand(cmdStmt.Command.Value)
-	if command == nil {
-		sh.error(env, fmt.Sprintf("unknown command %q", cmdStmt.Command.Value))
-		return
-	}
-	args := []string{cmdStmt.Command.Value}
-	for _, arg := range cmdStmt.Args {
+	args := []string{}
+	for _, arg := range cmdStmt.List {
 		sh.expandWord(env, arg)
 		args = append(args, arg.Value)
+	}
+
+	command := sh.FindCommand(args[0])
+	if command == nil {
+		sh.error(env, fmt.Sprintf("unknown command %q", args[0]))
+		return
 	}
 	sh.status = command.Run(sh, env, args)
 }
 
 func (sh *Shell) expandWord(env *Environment, word *Word) {
-	needsExpand := strings.ContainsAny(word.Value, `$"'\`)
-	if !needsExpand {
-		return
-	}
-
-	switch word.Value[0] {
-	case '\'':
-		word.Value = word.Value[1 : len(word.Value)-1]
-	case '"':
-		word.Value = word.Value[1 : len(word.Value)-1]
-		word.Value = expandDollar(env, word.Value)
-	default:
-		word.Value = expandEscape(word.Value)
-		word.Value = expandDollar(env, word.Value)
-	}
+	word.Value = expand(env, word.Value)
 }

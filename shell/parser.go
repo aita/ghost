@@ -143,14 +143,13 @@ func (p *parser) parseIfBlock() *BlockStmt {
 
 func (p *parser) parseCommand() Stmt {
 	cmd := &CommandStmt{}
-	cmd.Command = p.parseWord()
 	for !p.accept(TERMINATOR) {
 		if p.accept(EOF) {
 			p.error(p.tok.Pos, "unexpected EOF")
 			break
 		}
 		word := p.parseWord()
-		cmd.Args = append(cmd.Args, word)
+		cmd.List = append(cmd.List, word)
 	}
 	p.next()
 	return cmd

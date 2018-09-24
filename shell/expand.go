@@ -4,6 +4,25 @@ import (
 	"strings"
 )
 
+func expand(env *Environment, s string) string {
+	needsExpand := strings.ContainsAny(s, `$"'\`)
+	if !needsExpand {
+		return s
+	}
+
+	switch s[0] {
+	case '\'':
+		s = s[1 : len(s)-1]
+	case '"':
+		s = s[1 : len(s)-1]
+		s = expandDollar(env, s)
+	default:
+		s = expandEscape(s)
+		s = expandDollar(env, s)
+	}
+	return s
+}
+
 func expandDollar(env *Environment, src string) string {
 	builder := strings.Builder{}
 	for len(src) > 0 {

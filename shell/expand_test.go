@@ -12,16 +12,16 @@ func TestExpandEscape(t *testing.T) {
 		expected string
 	}{
 		{
-			`\n`,
-			"\n",
+			`\ `,
+			" ",
 		},
 		{
-			`hello world\n`,
-			"hello world\n",
+			`hello\ world`,
+			"hello world",
 		},
 		{
-			`first\n second\n`,
-			"first\n second\n",
+			"first\\\nsecond\\\n",
+			"first\nsecond\n",
 		},
 	} {
 		assert.Equal(t, tt.expected, expandEscape(tt.input))

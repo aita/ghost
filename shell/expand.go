@@ -13,9 +13,12 @@ func expand(env *Environment, s string) string {
 	switch s[0] {
 	case '\'':
 		s = s[1 : len(s)-1]
+
 	case '"':
 		s = s[1 : len(s)-1]
+		s = expandEscape(s)
 		s = expandDollar(env, s)
+
 	default:
 		s = expandEscape(s)
 		s = expandDollar(env, s)
@@ -45,11 +48,6 @@ func expandDollar(env *Environment, src string) string {
 	return builder.String()
 }
 
-var escapes = map[byte]rune{
-	'n': '\n',
-	't': '\t',
-}
-
 func expandEscape(src string) string {
 	builder := strings.Builder{}
 	for len(src) > 0 {
@@ -58,12 +56,7 @@ func expandEscape(src string) string {
 			break
 		}
 		builder.WriteString(src[:index])
-
-		ch, ok := escapes[src[index+1]]
-		if !ok {
-			ch = rune(src[index+1])
-		}
-		builder.WriteRune(ch)
+		builder.WriteByte(src[index+1])
 		src = src[index+2:]
 	}
 	builder.WriteString(src)

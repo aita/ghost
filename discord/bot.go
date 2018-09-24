@@ -22,18 +22,24 @@ type BotOption struct {
 }
 
 func MakeBot(token string, option BotOption) (bot Bot, err error) {
-	bot.option = option
-	bot.sh = &shell.Shell{}
-	bot.sh.Init()
-	bot.sh.In = bytes.NewReader(nil)
-	bot.sh.Out = bytes.NewBuffer(nil)
+	sh := &shell.Shell{
+		In:  bytes.NewReader(nil),
+		Out: bytes.NewBuffer(nil),
+	}
+	sh.Init()
 
-	bot.session, err = discordgo.New("Bot " + token)
+	session, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return
 	}
 
+	bot = Bot{
+		sh:      sh,
+		session: session,
+		option:  option,
+	}
 	bot.session.AddHandler(bot.OnMessageCreate)
+
 	return
 }
 

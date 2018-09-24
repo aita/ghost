@@ -116,5 +116,10 @@ func (sh *Shell) evalCommandNode(env *Environment, cmdNode *CommandNode) {
 }
 
 func (sh *Shell) expandWordNode(env *Environment, word *WordNode) {
-	word.Value = expand(env, word.Value)
+	s, err := expand(env, word.Value)
+	if err != nil {
+		sh.error(env, err.Error())
+		return
+	}
+	word.Value = s
 }

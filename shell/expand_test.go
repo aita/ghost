@@ -47,18 +47,28 @@ func TestExpandDollar(t *testing.T) {
 			"hello",
 		},
 		{
-			"$x$y $z",
+			"${var}",
 			map[string]string{
-				"x": "1",
-				"y": "2",
-				"z": "3",
+				"var": "hello",
 			},
-			"12 3",
+			"hello",
+		},
+		{
+			"$a${b} $c $d",
+			map[string]string{
+				"a": "1",
+				"b": "2",
+				"c": "3",
+				"d": "4",
+			},
+			"12 3 4",
 		},
 	} {
 		env := &Environment{
 			store: tt.store,
 		}
-		assert.Equal(t, tt.expected, expandDollar(env, tt.input))
+		s, err := expandDollar(env, tt.input)
+		assert.Equal(t, tt.expected, s)
+		assert.Nil(t, err)
 	}
 }

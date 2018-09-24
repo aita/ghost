@@ -10,3 +10,4 @@ jobs:
       - checkout
       - run: dep ensure
       - run: go test ./...
+      - run: test -z "$(gofmt -s -l . | grep -v vendor | tee /dev/stderr)"

@@ -15,37 +15,37 @@ func TestScanner(t *testing.T) {
 		{
 			"echo hello;\necho world",
 			[]*Token{
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "echo",
 					Pos:     Position{Offset: 0, Line: 1, Column: 1},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "hello",
 					Pos:     Position{Offset: 5, Line: 1, Column: 6},
 				},
-				&Token{
+				{
 					Kind:    TERMINATOR,
 					Literal: ";",
 					Pos:     Position{Offset: 10, Line: 1, Column: 11},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "echo",
 					Pos:     Position{Offset: 12, Line: 2, Column: 1},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "world",
 					Pos:     Position{Offset: 17, Line: 2, Column: 6},
 				},
-				&Token{
+				{
 					Kind:    TERMINATOR,
 					Literal: "",
 					Pos:     Position{Offset: 22, Line: 2, Column: 11},
 				},
-				&Token{
+				{
 					Kind:    EOF,
 					Literal: "",
 					Pos:     Position{Offset: 22, Line: 2, Column: 11},
@@ -55,77 +55,77 @@ func TestScanner(t *testing.T) {
 		{
 			`if test 1; echo 'one'; else; echo "other"; end`,
 			[]*Token{
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "if",
 					Pos:     Position{Offset: 0, Line: 1, Column: 1},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "test",
 					Pos:     Position{Offset: 3, Line: 1, Column: 4},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "1",
 					Pos:     Position{Offset: 8, Line: 1, Column: 9},
 				},
-				&Token{
+				{
 					Kind:    TERMINATOR,
 					Literal: ";",
 					Pos:     Position{Offset: 9, Line: 1, Column: 10},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "echo",
 					Pos:     Position{Offset: 11, Line: 1, Column: 12},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "'one'",
 					Pos:     Position{Offset: 16, Line: 1, Column: 17},
 				},
-				&Token{
+				{
 					Kind:    TERMINATOR,
 					Literal: ";",
 					Pos:     Position{Offset: 21, Line: 1, Column: 22},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "else",
 					Pos:     Position{Offset: 23, Line: 1, Column: 24},
 				},
-				&Token{
+				{
 					Kind:    TERMINATOR,
 					Literal: ";",
 					Pos:     Position{Offset: 27, Line: 1, Column: 28},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "echo",
 					Pos:     Position{Offset: 29, Line: 1, Column: 30},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: `"other"`,
 					Pos:     Position{Offset: 34, Line: 1, Column: 35},
 				},
-				&Token{
+				{
 					Kind:    TERMINATOR,
 					Literal: ";",
 					Pos:     Position{Offset: 41, Line: 1, Column: 42},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "end",
 					Pos:     Position{Offset: 43, Line: 1, Column: 44},
 				},
-				&Token{
+				{
 					Kind:    TERMINATOR,
 					Literal: "",
 					Pos:     Position{Offset: 46, Line: 1, Column: 47},
 				},
-				&Token{
+				{
 					Kind:    EOF,
 					Literal: "",
 					Pos:     Position{Offset: 46, Line: 1, Column: 47},
@@ -135,22 +135,22 @@ func TestScanner(t *testing.T) {
 		{
 			`echo "hello world"  # comment`,
 			[]*Token{
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "echo",
 					Pos:     Position{Offset: 0, Line: 1, Column: 1},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: `"hello world"`,
 					Pos:     Position{Offset: 5, Line: 1, Column: 6},
 				},
-				&Token{
+				{
 					Kind:    TERMINATOR,
 					Literal: "",
 					Pos:     Position{Offset: 29, Line: 1, Column: 30},
 				},
-				&Token{
+				{
 					Kind:    EOF,
 					Literal: "",
 					Pos:     Position{Offset: 29, Line: 1, Column: 30},
@@ -161,27 +161,27 @@ func TestScanner(t *testing.T) {
 			`echo hello \
 world`,
 			[]*Token{
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "echo",
 					Pos:     Position{Offset: 0, Line: 1, Column: 1},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "hello",
 					Pos:     Position{Offset: 5, Line: 1, Column: 6},
 				},
-				&Token{
+				{
 					Kind:    STRING,
 					Literal: "world",
 					Pos:     Position{Offset: 13, Line: 2, Column: 1},
 				},
-				&Token{
+				{
 					Kind:    TERMINATOR,
 					Literal: "",
 					Pos:     Position{Offset: 18, Line: 2, Column: 6},
 				},
-				&Token{
+				{
 					Kind:    EOF,
 					Literal: "",
 					Pos:     Position{Offset: 18, Line: 2, Column: 6},

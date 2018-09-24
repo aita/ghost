@@ -65,16 +65,16 @@ func (sh *Shell) Eval(env *Environment, node Node) {
 	case *Program:
 		sh.evalProgram(env, node)
 
-	case *IfStmt:
-		sh.evalIfStmt(env, node)
+	case *IfNode:
+		sh.evalIfNode(env, node)
 
-	case *BlockStmt:
-		sh.evalBlockStmt(env, node)
+	case *BlockNode:
+		sh.evalBlockNode(env, node)
 
-	case *CommandStmt:
-		sh.evalCommandStmt(env, node)
+	case *CommandNode:
+		sh.evalCommandNode(env, node)
 
-	case *BadStmt:
+	case *BadNode:
 		sh.error(env, "bad statement")
 	}
 }
@@ -85,25 +85,25 @@ func (sh *Shell) evalProgram(env *Environment, prog *Program) {
 	}
 }
 
-func (sh *Shell) evalIfStmt(env *Environment, ifStmt *IfStmt) {
-	sh.Eval(env, ifStmt.Cond)
+func (sh *Shell) evalIfNode(env *Environment, ifNode *IfNode) {
+	sh.Eval(env, ifNode.Cond)
 	if sh.status == 0 {
-		sh.Eval(env, ifStmt.Body)
-	} else if ifStmt.Else != nil {
-		sh.Eval(env, ifStmt.Else)
+		sh.Eval(env, ifNode.Body)
+	} else if ifNode.Else != nil {
+		sh.Eval(env, ifNode.Else)
 	}
 }
 
-func (sh *Shell) evalBlockStmt(env *Environment, blockStmt *BlockStmt) {
-	for _, stmt := range blockStmt.List {
+func (sh *Shell) evalBlockNode(env *Environment, blockNode *BlockNode) {
+	for _, stmt := range blockNode.List {
 		sh.Eval(env, stmt)
 	}
 }
 
-func (sh *Shell) evalCommandStmt(env *Environment, cmdStmt *CommandStmt) {
+func (sh *Shell) evalCommandNode(env *Environment, cmdNode *CommandNode) {
 	args := []string{}
-	for _, arg := range cmdStmt.List {
-		sh.expandWord(env, arg)
+	for _, arg := range cmdNode.List {
+		sh.expandWordNode(env, arg)
 		args = append(args, arg.Value)
 	}
 
@@ -115,6 +115,6 @@ func (sh *Shell) evalCommandStmt(env *Environment, cmdStmt *CommandStmt) {
 	sh.status = command.Run(sh, env, args)
 }
 
-func (sh *Shell) expandWord(env *Environment, word *Word) {
+func (sh *Shell) expandWordNode(env *Environment, word *WordNode) {
 	word.Value = expand(env, word.Value)
 }

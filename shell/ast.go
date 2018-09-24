@@ -3,32 +3,28 @@ package shell
 type Node interface {
 }
 
-type Stmt interface {
-	Node
-}
-
 type Program struct {
-	Body []Stmt
+	Body []Node
 }
 
-type Word struct {
+type WordNode struct {
 	Token *Token
 	Value string
 }
 
-type CommandStmt struct {
-	List []*Word
+type CommandNode struct {
+	List []*WordNode
 }
 
-type BlockStmt struct {
-	List []Stmt
+type BlockNode struct {
+	List []Node
 }
 
-type IfStmt struct {
-	Cond Stmt
-	Body *BlockStmt
-	Else Stmt
+type IfNode struct {
+	Cond Node
+	Body *BlockNode
+	Else Node
 }
 
-type BadStmt struct {
+type BadNode struct {
 }

@@ -78,15 +78,15 @@ func (p *parser) parse() *Program {
 		if p.accept(EOF) {
 			break
 		}
-		stmt := p.parseStmt()
+		stmt := p.parseNode()
 		prog.Body = append(prog.Body, stmt)
 	}
 	return prog
 }
 
-func (p *parser) parseStmt() Stmt {
+func (p *parser) parseNode() Node {
 	if p.acceptKeyword("if") {
-		return p.parseIfStmt()
+		return p.parseIf()
 	}
 	if p.accept(STRING) {
 		return p.parseCommand()
@@ -95,38 +95,38 @@ func (p *parser) parseStmt() Stmt {
 	msg := fmt.Sprintf("unexpected token %s", p.tok.Kind)
 	p.error(p.tok.Pos, msg)
 	p.next() // make progress
-	return &BadStmt{}
+	return &BadNode{}
 }
 
-func (p *parser) parseIfStmt() *IfStmt {
+func (p *parser) parseIf() *IfNode {
 	p.next()
-	ifStmt := &IfStmt{}
-	ifStmt.Cond = p.parseCommand()
-	ifStmt.Body = p.parseIfBlock()
+	ifNode := &IfNode{}
+	ifNode.Cond = p.parseCommand()
+	ifNode.Body = p.parseIfBlock()
 
 	expectEnd := true
 	if p.acceptKeyword("else") {
 		p.next()
 		if p.accept(TERMINATOR) {
 			p.next()
-			ifStmt.Else = p.parseIfBlock()
+			ifNode.Else = p.parseIfBlock()
 		} else if p.acceptKeyword("if") {
 			p.next()
-			ifStmt.Else = p.parseIfStmt()
+			ifNode.Else = p.parseIf()
 			expectEnd = false
 		} else {
-			ifStmt.Else = &BadStmt{}
+			ifNode.Else = &BadNode{}
 		}
 	}
 	if expectEnd {
 		p.expectKeyword("end")
 		p.expect(TERMINATOR)
 	}
-	return ifStmt
+	return ifNode
 }
 
-func (p *parser) parseIfBlock() *BlockStmt {
-	block := &BlockStmt{}
+func (p *parser) parseIfBlock() *BlockNode {
+	block := &BlockNode{}
 	for {
 		if p.accept(EOF) {
 			p.error(p.tok.Pos, "unexpected EOF")
@@ -135,14 +135,14 @@ func (p *parser) parseIfBlock() *BlockStmt {
 		if p.acceptKeyword("end") || p.acceptKeyword("else") {
 			break
 		}
-		stmt := p.parseStmt()
+		stmt := p.parseNode()
 		block.List = append(block.List, stmt)
 	}
 	return block
 }
 
-func (p *parser) parseCommand() Stmt {
-	cmd := &CommandStmt{}
+func (p *parser) parseCommand() Node {
+	cmd := &CommandNode{}
 	for !p.accept(TERMINATOR) {
 		if p.accept(EOF) {
 			p.error(p.tok.Pos, "unexpected EOF")
@@ -155,9 +155,9 @@ func (p *parser) parseCommand() Stmt {
 	return cmd
 }
 
-func (p *parser) parseWord() *Word {
+func (p *parser) parseWord() *WordNode {
 	tok := p.expect(STRING)
-	return &Word{
+	return &WordNode{
 		Token: tok,
 		Value: tok.Literal,
 	}

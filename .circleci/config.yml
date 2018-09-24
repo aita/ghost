@@ -1,0 +1,12 @@
+version: 2
+jobs:
+  build:
+    working_directory: /go/src/github.com/aita/ghost
+    docker:
+      - image: circleci/golang:1.11
+    environment:
+      TZ: Asia/Tokyo
+    steps:
+      - checkout
+      - run: dep ensure
+      - run: go test ./...

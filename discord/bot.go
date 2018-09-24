@@ -14,9 +14,15 @@ import (
 type Bot struct {
 	sh      *shell.Shell
 	session *discordgo.Session
+	option  BotOption
 }
 
-func MakeBot(token string) (bot Bot, err error) {
+type BotOption struct {
+	Prefix string
+}
+
+func MakeBot(token string, option BotOption) (bot Bot, err error) {
+	bot.option = option
 	bot.sh = &shell.Shell{}
 	bot.sh.Init()
 	bot.sh.In = bytes.NewReader(nil)
@@ -47,7 +53,11 @@ func (bot Bot) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	}
 
 	msg := m.Content
-	bot.sh.Exec(msg)
+	if !strings.HasPrefix(msg, bot.option.Prefix) {
+		return
+	}
+	script := msg[len(bot.option.Prefix):]
+	bot.sh.Exec(script)
 
 	buf, _ := ioutil.ReadAll(bot.sh.Out.(*bytes.Buffer))
 	result := string(buf)

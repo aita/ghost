@@ -11,6 +11,10 @@ import (
 	"github.com/aita/ghost/discord"
 )
 
+func init() {
+	viper.SetDefault("shell.prefix", "%")
+}
+
 func die(err error) {
 	fmt.Fprintln(os.Stderr, err)
 	os.Exit(1)
@@ -27,7 +31,10 @@ func main() {
 	}
 
 	token := viper.GetString("discord.token")
-	bot, err := discord.MakeBot(token)
+	opt := discord.BotOption{
+		Prefix: viper.GetString("shell.prefix"),
+	}
+	bot, err := discord.MakeBot(token, opt)
 	if err != nil {
 		die(err)
 	}

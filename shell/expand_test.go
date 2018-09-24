@@ -6,6 +6,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestExpand(t *testing.T) {
+	for _, tt := range []struct {
+		input    string
+		store    map[string]string
+		expected string
+	}{
+		{
+			`hello\ world`,
+			nil,
+			"hello world",
+		},
+		{
+			`'hello\ world'`,
+			nil,
+			"hello\\ world",
+		},
+		{
+			`"hello\ world"`,
+			nil,
+			"hello world",
+		},
+	} {
+		env := &Environment{}
+		result, err := expand(env, tt.input)
+		assert.Equal(t, tt.expected, result)
+		assert.Nil(t, err)
+	}
+}
+
 func TestExpandEscape(t *testing.T) {
 	for _, tt := range []struct {
 		input    string

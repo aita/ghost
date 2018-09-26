@@ -23,7 +23,6 @@ type Scanner struct {
 	src              *bufio.Reader
 	ch               rune
 	insertTerminator bool
-	sb               strings.Builder
 	lastSize         int
 	pos              Position
 }
@@ -125,21 +124,20 @@ func (s *Scanner) skipComment() {
 		if s.ch == EOF || s.ch == '\r' || s.ch == '\n' {
 			break
 		}
-		s.sb.WriteRune(s.ch)
 		s.next()
 	}
 }
 
 func (s *Scanner) scanString(head string) string {
-	s.sb.Reset()
-	s.sb.WriteString(head)
+	var sb strings.Builder
+	sb.WriteString(head)
 scanEnd:
 	for {
 		switch s.ch {
 		case EOF, ';', '\'', '"':
 			break scanEnd
 		case '\\':
-			s.sb.WriteRune(s.ch)
+			sb.WriteRune(s.ch)
 			s.next()
 			if s.ch == EOF {
 				s.error("unexpected end of string")
@@ -150,17 +148,17 @@ scanEnd:
 				break scanEnd
 			}
 		}
-		s.sb.WriteRune(s.ch)
+		sb.WriteRune(s.ch)
 		s.next()
 	}
-	return s.sb.String()
+	return sb.String()
 }
 
 func (s *Scanner) scanQuotedString() string {
 	quote := s.ch
 
-	s.sb.Reset()
-	s.sb.WriteRune(quote)
+	var sb strings.Builder
+	sb.WriteRune(quote)
 	for {
 		s.next()
 		if s.ch == EOF {
@@ -168,7 +166,7 @@ func (s *Scanner) scanQuotedString() string {
 			break
 		} else if s.ch == '\'' || s.ch == '"' {
 			if s.ch == quote {
-				s.sb.WriteRune(s.ch)
+				sb.WriteRune(s.ch)
 				break
 			}
 		} else if s.ch == '\\' {
@@ -178,11 +176,11 @@ func (s *Scanner) scanQuotedString() string {
 				break
 			}
 			if s.ch != quote {
-				s.sb.WriteRune('\\')
+				sb.WriteRune('\\')
 			}
 		}
-		s.sb.WriteRune(s.ch)
+		sb.WriteRune(s.ch)
 	}
 	s.next()
-	return s.sb.String()
+	return sb.String()
 }
